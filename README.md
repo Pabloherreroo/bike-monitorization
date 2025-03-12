@@ -1,4 +1,4 @@
-**# Sistema de Administración y Monitorización de Bicicletas Sensorizadas**
+# Sistema de Administración y Monitorización de Bicicletas Sensorizadas
 
 Este sistema permite la administración y monitorización en tiempo real de bicicletas equipadas con sensores. La aplicación ofrece un panel de control intuitivo donde los usuarios pueden visualizar datos clave sobre el uso y estado de las bicicletas, con mapas e indicadores que aportan información relevante.
 
