@@ -274,6 +274,10 @@ input:checked + .slider:before {
 }
 
 /* Dashboard */
+.dashboard-title {
+  margin-bottom: 20px;
+}
+
 .dashboard-container {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -293,3 +297,180 @@ input:checked + .slider:before {
   align-items: center;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
+
+/* Air Quality Card */
+.dashboard-card-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dashboard-card-title {
+  color: var(--dark-orange);
+  font-size: 18px;
+  margin: 0;
+}
+
+.air-quality-card {
+  display: flex;
+  padding: 20px;
+  height: 200px;
+}
+
+.air-quality-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.air-quality-divider {
+  width: 1px;
+  height: 90%;
+  background-color: var(--light-gray);
+  margin: 0 20px;
+  align-self: center;
+}
+
+.air-quality-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 10px; 
+}
+
+.air-quality-rankings {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.top-rankings {
+  margin-bottom: 20px;
+}
+
+.air-quality-rankings h4 {
+  font-size: 14px;
+  color: var(--dark-gray);
+}
+
+.ranking-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.ranking-score {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.color-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.city-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.city-name {
+  font-weight: bold;
+  font-size: 16px;
+  color: var(--dark-orange);
+}
+
+.city-score {
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--dark-gray);
+  margin-top: 5px;
+}
+
+/*Inidcadores cada 20% para la parte derecha de el de aire*/
+.good-indicator {
+  background-color: #7BC67B;
+}
+
+.moderate-indicator {
+  background-color: #C5E26D;
+}
+
+.mid-indicator {
+  background-color: #F9D954;
+}
+
+.bad-indicator {
+  background-color: #EB9B48;
+}
+
+.worst-indicator {
+  background-color: #D64E3C;
+}
+
+/* Aguja */
+.gauge-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 110px;
+  width: 180px;
+  position: relative;
+}
+
+.gauge {
+  position: relative;
+  width: 150px;
+  height: 75px;
+  overflow: hidden;
+}
+
+.gauge-sections {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  /* El gradiente se dibuja desde 270deg para que el arco visible (la mitad superior del círculo)
+     abarque de rojo a verde de izquierda a derecha */
+  background: conic-gradient(
+    from 270deg,
+    #D64E3C 0deg 36deg,    
+    #EB9B48 36deg 72deg,   
+    #F9D954 72deg 108deg,  
+    #C5E26D 108deg 144deg, 
+    #7BC67B 144deg 180deg  
+  );
+}
+
+.gauge-needle {
+  position: absolute;
+  bottom: 0;
+  left: 75px;
+  width: 4px;
+  height: 65px;
+  background-color: var(--dark-gray);
+  transform-origin: bottom;
+  z-index: 10;
+}
+
+.gauge-center {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background-color: white;
+  border: 2px solid var(--dark-gray);
+  border-radius: 50%;
+  bottom: 0;
+  left: 65px;
+  z-index: 20;
+}
+
