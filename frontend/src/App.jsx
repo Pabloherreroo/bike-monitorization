@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect   } from 'react';
 import Login from './pages/Login';
 import MainLayout from './layouts/MainLayout';
 import Maps from './pages/Maps';
@@ -9,6 +9,33 @@ import './styles/App.css';
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
+  // Datos de prueba para calidad de aire, los cambiaré por lo que venga de backend
+  const [airQualityData, setAirQualityData] = useState([
+    { name: "Deusto", value: 87 },
+    { name: "Abando", value: 78 },
+    { name: "Zorrotza", value: 42 },
+    { name: "Otxarkoaga", value: 55 },
+    { name: "Basurto", value: 38 },
+    { name: "Basauri", value: 64 },
+    { name: "Zamudio", value: 18 },
+    { name: "Indautxu", value: 75 },
+  ]);
+
+  // Simulo la actualización dinámica de los datos cada segundo
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAirQualityData((prevData) =>
+        prevData.map((item) => ({
+          ...item,
+          value: Math.round(item.value + (Math.random() * 10 - 5)), 
+        }))
+      );
+    }, 1000); 
+
+    return () => clearInterval(interval); // Detiene ejecucion repetida al acabar
+  }, []);
+
+
   const handleLogin = (username, password) => {
     // Simple authentication for demo, luego verificar
     if (username && password) {
@@ -33,7 +60,7 @@ function App() {
           path="/dashboard" 
           element={
             isAuthenticated 
-              ? <MainLayout><Dashboard /></MainLayout> 
+              ? <MainLayout><Dashboard externalAirQualityData={airQualityData} /></MainLayout> //Estoy pasando datos solo de aire a dashboard
               : <Navigate to="/login" replace />
           } 
         />

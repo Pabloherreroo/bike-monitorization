@@ -1,17 +1,9 @@
+import { useState, useEffect } from "react";
 import '../styles/App.css';
 
-const Dashboard = () => {
-    // Datos de ejemplo, lo cambiare por los reales
-    const airQualityData = [
-        { name: "Deusto", value: 87 },
-        { name: "Abando", value: 78 },
-        { name: "Zorrotza", value: 42 },
-        { name: "Otxarkoaga", value: 55 },
-        { name: "Basurto", value: 38 },
-        { name: "Basauri", value: 64 },
-        { name: "Zamudio", value: 18 },
-        { name: "Indautxu", value: 75 }
-    ];
+const Dashboard = ({ externalAirQualityData }) => {
+    
+    const [airQualityData, setAirQualityData] = useState(externalAirQualityData);
 
     const valueBilbao = Math.round(
         airQualityData.reduce((sum, { value }) => sum + value, 0) / airQualityData.length
@@ -34,6 +26,11 @@ const Dashboard = () => {
         if (value >= 20) return "bad-indicator";
         return "worst-indicator";
     };
+
+    // Esto hace que se actualice cuando cambien los valores externos
+    useEffect(() => {
+        setAirQualityData(externalAirQualityData);
+    }, [externalAirQualityData]);
 
     return (
         <div>
