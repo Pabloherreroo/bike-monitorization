@@ -1,7 +1,7 @@
 :root {
-  --soft-orange: #FF9A76;
+  --soft-orange: #ef8863;
   --creamy-white: #FFF8E1;
-  --dark-orange: #D46F4D;
+  --dark-orange: #924025;
   --light-gray: #F0F0F0;
   --dark-gray: #333333;
 }
@@ -56,7 +56,7 @@ input {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* Header Styles */
+/* Header */
 .header {
   background-color: var(--soft-orange);
   color: white;
@@ -71,7 +71,7 @@ input {
   font-size: 24px;
 }
 
-/* Switch styles */
+/* Switch */
 .switch-container {
   display: flex;
   align-items: center;
@@ -124,7 +124,7 @@ input:checked + .slider:before {
   background-color: var(--dark-orange);
 }
 
-/* Login Page */
+/* Login */
 .login-container {
   height: 100vh;
   display: flex;
@@ -135,7 +135,7 @@ input:checked + .slider:before {
 
 .login-card {
   width: 100%;
-  max-width: 400px;
+  max-width: 450px;
   padding: 30px;
 }
 
@@ -145,7 +145,11 @@ input:checked + .slider:before {
   text-align: center;
 }
 
-/* Maps Page */
+.form-group input {
+  margin-top: 10px;
+}
+
+/* Mapas */
 .maps-container {
   display: flex;
   flex-direction: column;
@@ -154,8 +158,9 @@ input:checked + .slider:before {
 
 .maps-row {
   display: flex;
-  gap: 20px;
+  gap: 40px;
   min-height: 320px;
+  align-items: stretch;
 }
 
 .map-box-container {
@@ -163,55 +168,89 @@ input:checked + .slider:before {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width: 100%; 
+  
 }
 
 .map-box {
   flex: 1;
   height: 300px;
+  min-height: 250px;
   background-color: var(--light-gray);
   border-radius: 8px;
   display: flex;
   justify-content: center;
   align-items: center;
   color: var(--dark-gray);
+  width: 100%; 
 }
 
 .maps-info {
+  margin-top: 15px;
   padding: 20px;
   background-color: white;
   border-radius: 8px;
 }
 
-/* Maps -> Time Slider Styles */
-.time-slider {
+/* Mapas -> Time Slider */
+.time-slider-container {
+  position: relative;
+  padding: 0;
+  margin: 0 10px;
+  height: 36px; 
   display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.time-slider-track {
+  height: 8px;
   background-color: var(--light-gray);
   border-radius: 4px;
-  overflow: hidden;
-  height: 36px;
+  position: relative;
+  margin-top: 4px;
 }
 
-.time-option {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  color: var(--dark-gray);
-  font-weight: 500;
-}
-
-.time-option:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-.time-option.active {
+.time-slider-thumb {
+  position: absolute;
+  width: 15px;
+  height: 15px;
   background-color: var(--soft-orange);
-  color: white;
+  border-radius: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  transition: left 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* Maps -> Color Sections Styles */
+.time-slider-labels {
+  position: relative;
+  height: 24px;
+  margin-top: 8px;
+}
+
+.time-label {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--dark-gray);
+  cursor: pointer;
+  transition: color 0.2s ease;
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+
+.time-label:hover {
+  color: var(--dark-orange);
+}
+
+.time-label.active {
+  color: var(--soft-orange);
+  font-weight: 600;
+}
+
+/* Mapas -> Color Sections */
 .color-sections {
   display: flex;
   height: 36px;

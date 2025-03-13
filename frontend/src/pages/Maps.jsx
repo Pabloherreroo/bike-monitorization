@@ -31,6 +31,8 @@ const Maps = () => {
         }
     };
 
+    const activeIndex = timeFrames.findIndex(tf => tf.id === activeTimeFrame);
+
     return (
         <div className="maps-container">
             <div className="maps-row">
@@ -38,17 +40,25 @@ const Maps = () => {
                     <div className="map-box">
                         <span>Mapa 1</span>
                     </div>
-                    <div className="time-slider"> 
-                        {/* TODO: Aqui tengo que modificarlo para que sea un slider y no botones */}
-                        {timeFrames.map((time) => (
-                        <div 
-                            key={time.id}
-                            className={`time-option ${activeTimeFrame === time.id ? 'active' : ''}`}
-                            onClick={() => handleTimeFrameClick(time.id)}
-                        >
-                            {time.label}
+                    <div className="time-slider-container">
+                        <div className="time-slider-track">
+                            <div 
+                                className="time-slider-thumb" 
+                                style={{ left: `${(activeIndex / (timeFrames.length - 1)) * 100}%` }}
+                            ></div>
                         </div>
-                        ))}
+                        <div className="time-slider-labels">
+                            {timeFrames.map((time, index) => (
+                                <div 
+                                    key={time.id}
+                                    className={`time-label ${activeTimeFrame === time.id ? 'active' : ''}`}
+                                    style={{ left: `${(index / (timeFrames.length - 1)) * 100}%` }}
+                                    onClick={() => handleTimeFrameClick(time.id)}
+                                >
+                                    {time.label}
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
                 <div className="map-box-container">

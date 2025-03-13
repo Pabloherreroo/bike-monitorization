@@ -27,7 +27,7 @@ const Login = ({ onLogin }) => {
                     id="username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Enter your username"
+                    placeholder="Introduce tu nombre de usuario"
                     />
                 </div>
                 <div className="form-group">
@@ -37,7 +37,7 @@ const Login = ({ onLogin }) => {
                     id="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
+                    placeholder="Introduce tu contraseña"
                     />
                 </div>
                 <button type="submit" style={{ width: '100%' }}>Login</button>
