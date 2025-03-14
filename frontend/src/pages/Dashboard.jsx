@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import '../styles/App.css';
+import '../styles/Dashboard.css';
 
 const Dashboard = ({ externalAirQualityData, externalNoiseData }) => {
     

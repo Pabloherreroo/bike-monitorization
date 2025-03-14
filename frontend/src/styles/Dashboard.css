@@ -1,0 +1,364 @@
+:root {
+    --soft-color: #a33535;
+    --creamy-white: #FFF8E1;
+    --dark-color: #540e0e;
+    --light-gray: #F0F0F0;
+    --dark-gray: #333333;
+  }
+  
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--creamy-white);
+    color: var(--dark-gray);
+  }
+  
+  button {
+    cursor: pointer;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    background-color: var(--soft-color);
+    color: white;
+    font-weight: bold;
+    transition: background-color 0.2s;
+  }
+  
+  button:hover {
+    background-color: var(--dark-color);
+  }
+  
+  input {
+    padding: 10px;
+    border: 1px solid var(--light-gray);
+    border-radius: 5px;
+    font-size: 16px;
+    width: 100%;
+    margin-bottom: 15px;
+  }
+  
+  .container {
+    width: 100%;
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .card {
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+
+/* Dashboard */
+.dashboard-title {
+    margin-bottom: 20px;
+  }
+  
+  .dashboard-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: auto auto;
+    gap: clamp(10px, 5vw, 40px);
+    justify-content: center;
+    align-items: center;
+    row-gap: 80px;
+  }
+  
+  .dashboard-card {
+    height: 200px;
+    background-color: white;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dashboard-card-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .dashboard-card-title {
+    color: var(--dark-color);
+    font-size: 18px;
+    margin-top: 10px;
+  }
+  
+  /* Air Quality */
+  .air-quality-card {
+    display: flex;
+    padding: 20px;
+    height: 200px;
+  }
+  
+  .air-quality-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .air-quality-divider {
+    width: 1px;
+    height: 90%;
+    background-color: var(--light-gray);
+    margin: 0 20px;
+    align-self: center;
+  }
+  
+  .air-quality-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 10px; 
+  }
+  
+  /* Para ciudades y barrios en ambos indicadores */
+  .air-quality-rankings, .noise-rankings {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .top-rankings {
+    margin-bottom: 20px;
+  }
+  
+  .air-quality-rankings, .noise-rankings h4 {
+    font-size: 15px;
+    color: var(--dark-gray);
+  }
+  
+  .ranking-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+  }
+  
+  .ranking-score {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .color-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+  
+  .city-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .city-name {
+    font-weight: bold;
+    font-size: 16px;
+    color: var(--dark-color);
+  }
+  
+  .city-score {
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--dark-gray);
+    margin-top: 5px;
+  }
+  
+  /*Inidcadores cada 20% para la parte derecha de el de aire y de ruido*/
+  .good-indicator {
+    background-color: #7BC67B;
+  }
+  
+  .moderate-indicator {
+    background-color: #C5E26D;
+  }
+  
+  .mid-indicator {
+    background-color: #F9D954;
+  }
+  
+  .bad-indicator {
+    background-color: #EB9B48;
+  }
+  
+  .worst-indicator {
+    background-color: #D64E3C;
+  }
+  
+  /* Aguja */
+  .gauge-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 110px;
+    width: 180px;
+    position: relative;
+  }
+  
+  .gauge {
+    position: relative;
+    width: 150px;
+    height: 75px;
+    overflow: hidden;
+  }
+  
+  .gauge-sections {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    /* El gradiente se dibuja desde 270deg para que el arco visible (la mitad superior del círculo)
+       abarque de rojo a verde de izquierda a derecha */
+    background: conic-gradient(
+      from 270deg,
+      #D64E3C 0deg 36deg,    
+      #EB9B48 36deg 72deg,   
+      #F9D954 72deg 108deg,  
+      #C5E26D 108deg 144deg, 
+      #7BC67B 144deg 180deg  
+    );
+  }
+  
+  .gauge-needle {
+    position: absolute;
+    bottom: 0;
+    left: 75px;
+    width: 4px;
+    height: 65px;
+    background-color: var(--dark-gray);
+    transform-origin: bottom;
+    z-index: 10;
+  }
+  
+  .gauge-center {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background-color: white;
+    border: 2px solid var(--dark-gray);
+    border-radius: 50%;
+    bottom: 0;
+    left: 65px;
+    z-index: 20;
+  }
+  
+  /* Ruido */
+  .noise-card {
+    display: flex;
+    padding: 20px;
+    height: 200px;
+  }
+  
+  .noise-left {
+    flex: 0.5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .noise-divider {
+    width: 1px;
+    height: 90%;
+    background-color: var(--light-gray);
+    margin: 0 20px;
+    align-self: center;
+  }
+  
+  .noise-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 10px;
+  }
+  
+  /* Medidor de ruido */
+  .noise-meter-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 110px;
+    position: relative;
+  }
+  
+  .noise-scale {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .noise-meter-with-labels {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative; 
+  }
+  
+  .noise-scale-labels {
+    position: absolute;
+    right: -40px; 
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+  }
+  
+  .noise-scale-label {
+    font-size: 10px;
+    color: var(--dark-gray);
+    font-weight: 500;
+  }
+  
+  .noise-meter {
+    position: relative;
+    width: 40px;
+    height: 90px;
+  }
+  
+  .noise-meter-gradient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.3);
+    /* Gradiente verde-rojo */
+    background: linear-gradient(to top, 
+      #7BC67B 0%,   
+      #C5E26D 25%, 
+      #F9D954 50%,  
+      #EB9B48 75%, 
+      #D64E3C 100%   
+    );
+  }
+  
+  .noise-meter-indicator {
+    position: absolute;
+    left: -2.5px;
+    width: 45px;
+    height: 4px;
+    background-color: var(--dark-gray);
+    z-index: 10;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+  

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import '../styles/App.css';
+import '../styles/Maps.css';
 
 const Maps = () => {
     const [activeTimeFrame, setActiveTimeFrame] = useState('1d');
