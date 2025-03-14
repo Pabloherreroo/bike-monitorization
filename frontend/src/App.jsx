@@ -9,7 +9,7 @@ import './styles/App.css';
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
-  // Datos de prueba para calidad de aire, los cambiaré por lo que venga de backend
+  // Datos de prueba, los cambiaré por lo que venga de backend
   const [airQualityData, setAirQualityData] = useState([
     { name: "Deusto", value: 87 },
     { name: "Abando", value: 78 },
@@ -20,6 +20,16 @@ function App() {
     { name: "Zamudio", value: 18 },
     { name: "Indautxu", value: 75 },
   ]);
+  const [noiseData, setNoiseData] = useState([
+    { name: "Deusto", value: 62 },
+    { name: "Abando", value: 85 },
+    { name: "Zorrotza", value: 45 },
+    { name: "Otxarkoaga", value: 37 },
+    { name: "Basurto", value: 78 },
+    { name: "Basauri", value: 53 },
+    { name: "Zamudio", value: 29 },
+    { name: "Indautxu", value: 91 },
+  ]);
 
   // Simulo la actualización dinámica de los datos cada segundo. Problema -> valores que pasan de 100 o bajan de 0 (limitar)
   useEffect(() => {
@@ -27,7 +37,14 @@ function App() {
       setAirQualityData((prevData) =>
         prevData.map((item) => ({
           ...item,
-          value: Math.round(item.value + (Math.random() * 10 - 5)), 
+          value: Math.max(0, Math.min(100, Math.round(item.value + (Math.random() * 10 - 5)))),
+        }))
+      );
+
+      setNoiseData((prevData) =>
+        prevData.map((item) => ({
+          ...item,
+          value: Math.max(0, Math.min(120, Math.round(item.value + (Math.random() * 10 - 5)))),
         }))
       );
     }, 1000); 
@@ -60,7 +77,7 @@ function App() {
           path="/dashboard" 
           element={
             isAuthenticated 
-              ? <MainLayout><Dashboard externalAirQualityData={airQualityData} /></MainLayout> //Estoy pasando datos solo de aire a dashboard
+              ? <MainLayout><Dashboard externalAirQualityData={airQualityData} externalNoiseData={noiseData} /></MainLayout> //Estoy pasando datos solo de aire a dashboard
               : <Navigate to="/login" replace />
           } 
         />
