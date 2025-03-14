@@ -235,7 +235,7 @@ const Maps = () => {
         <div className="maps-container">
             <div className="maps-row">
                 <div className="map-box-container">
-                    <h3>Flujo de ciclistas</h3>
+                    <h3 className="map-box-title">Flujo de ciclistas</h3>
                     <MapContainer center={[43.263, -2.935]} zoom={13} className="map-box">
                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                         <Heatmap data={heatmapData} />
@@ -262,7 +262,7 @@ const Maps = () => {
                     </div>
                 </div>
                 <div className="map-box-container">
-                    <h3>Estado de carreteras y carriles</h3>
+                    <h3 className="map-box-title">Estado de carreteras y carriles</h3>
                     <MapContainer center={[43.263, -2.935]} zoom={13} className="map-box">
                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                         <GeoJSON
