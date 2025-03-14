@@ -50,14 +50,14 @@ const Dashboard = ({ externalAirQualityData }) => {
                             </div>
                             <div className="city-info">
                                 <div className="city-name">Bilbao</div>
-                                <div className="city-score">{valueBilbao}</div>
+                                <div className="city-score">{valueBilbao} %</div>
                             </div>
                         </div>
                         <div className="air-quality-divider"></div>
                         <div className="air-quality-right">
                             {/* Establezco los colores correctos para los datos del array de arriba */}
                             <div className="air-quality-rankings top-rankings">
-                                <h4>Lugares con mejor calidad de aire</h4>
+                                <h4>Lugares con menor contaminación</h4>
                                 {bestAirQuality.map((item, index) => (
                                     <div key={index} className="ranking-item">
                                         <span className="ranking-name">{item.name}</span>
@@ -69,7 +69,7 @@ const Dashboard = ({ externalAirQualityData }) => {
                                 ))}
                             </div>
                             <div className="air-quality-rankings bottom-rankings">
-                                <h4>Lugares con peor calidad de aire</h4>
+                                <h4>Lugares con mayor contaminación</h4>
                                 {worstAirQuality.map((item, index) => (
                                     <div key={index} className="ranking-item">
                                         <span className="ranking-name">{item.name}</span>

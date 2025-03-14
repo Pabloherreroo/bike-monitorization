@@ -21,7 +21,7 @@ function App() {
     { name: "Indautxu", value: 75 },
   ]);
 
-  // Simulo la actualización dinámica de los datos cada segundo
+  // Simulo la actualización dinámica de los datos cada segundo. Problema -> valores que pasan de 100 o bajan de 0 (limitar)
   useEffect(() => {
     const interval = setInterval(() => {
       setAirQualityData((prevData) =>
