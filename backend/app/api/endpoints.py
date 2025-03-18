@@ -32,13 +32,13 @@ def crear_bike_data(data: schemas.BikeDataCreate, db: Session = Depends(get_db))
 
 # Consultas para front
 @router.get("/bike_data", response_model=list[schemas.BikeData])
-def obtener_bike_data(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    datos = db.query(models.BikeData).offset(skip).limit(limit).all()
+def obtener_bike_data(db: Session = Depends(get_db)):
+    datos = db.query(models.BikeData).all()
     return datos
 
 @router.get("/bikes", response_model=list[schemas.Bike])
-def obtener_bikes(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    bikes = db.query(models.Bike).offset(skip).limit(limit).all()
+def obtener_bikes(db: Session = Depends(get_db)):
+    bikes = db.query(models.Bike).all()
     return bikes
 
  

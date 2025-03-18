@@ -40,7 +40,7 @@ const Heatmap = ({ data }) => {
 
 const Maps = ({ bikeData }) => {
     const [activeTimeFrame, setActiveTimeFrame] = useState('1d');
-    const [activeColors, setActiveColors] = useState(['green', 'yellow', 'orange', 'red']);
+    const [geoJsonKey, setGeoJsonKey] = useState(0);
 
     const timeFrames = [
         { id: '1d', label: '1d' },
@@ -49,19 +49,15 @@ const Maps = ({ bikeData }) => {
         { id: 'tot', label: 'Tot' }
     ];
 
-    const roadColors = {
-        good: "#4CAF50",
-        mid: "#FFEB3B",
-        bad: "#FF9800",
-        very_bad: "#F44336"
-    };
-    
-    const colorSections = [
-        { id: 'green', color: roadColors.good, condition: 'good' },
-        { id: 'yellow', color: roadColors.mid, condition: 'mid' },
-        { id: 'orange', color: roadColors.bad, condition: 'bad' },
-        { id: 'red', color: roadColors.very_bad, condition: 'very_bad' }
+    const roadConditions = [
+        { id: 'green', condition: 'good', color: "#4CAF50", score: 1 },
+        { id: 'yellow', condition: 'mid', color: "#FFEB3B", score: 2 },
+        { id: 'orange', condition: 'bad', color: "#FF9800", score: 3 },
+        { id: 'red', condition: 'very_bad', color: "#F44336", score: 4 }
     ];
+    
+    // Estado para los colores activos, inicialmente todos
+    const [activeColors, setActiveColors] = useState(roadConditions.map(c => c.id));
 
     // Función para calcular la ventana de tiempo según el filtro 
     const getTimeWindow = () => {
@@ -97,26 +93,26 @@ const Maps = ({ bikeData }) => {
     const roadsGeoJson = useMemo(() => {
         if (!bikeData || bikeData.length === 0) return { type: "FeatureCollection", features: [] };
         
-        const timeWindow = getTimeWindow();
-        const filteredData = bikeData.filter(item => new Date(item.fecha) >= timeWindow);
+        // Pongo el ultimo mes por poner algo de limite
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+        const filteredData = bikeData.filter(item => new Date(item.fecha) >= oneMonthAgo);
         const roadFeatures = [];
+
+        // Mapas para búsqueda rápida de condición por puntuación y de id por condicion
+        const scoreToCondition = new Map(roadConditions.map(c => [c.score, c.condition]));
+        const conditionToColorId = new Map(roadConditions.map(c => [c.condition, c.id]));
         
         // Ordenar los datos por bike_id y fecha para poder emparejar puntos consecutivos
         const sortedData = [...filteredData]
             .filter(item => item.latitud && item.longitud && item.puntuacion_road)
             .sort((a, b) => {
-                if (a.bike_id !== b.bike_id) return a.bike_id - b.bike_id;
+                if (a.bike_id !== b.bike_id) return a.bike_id.localeCompare(b.bike_id);
                 return new Date(a.fecha) - new Date(b.fecha);
             });
 
         const getConditionFromScore = (score) => {
-            switch (parseInt(score)) {
-                case 1: return "good";
-                case 2: return "mid";
-                case 3: return "bad";
-                case 4: return "very_bad";
-                default: return "good";
-            }
+            return scoreToCondition.get(parseInt(score)) || "good";
         };
 
         for (let i = 1; i < sortedData.length; i++) {
@@ -129,10 +125,8 @@ const Maps = ({ bikeData }) => {
                 
                 if (timeDiff <= 5) {
                     const condition = getConditionFromScore(currentPoint.puntuacion_road);
-                    
-                    // Solo agregar la línea si el color está activo
-                    const colorSection = colorSections.find(cs => cs.condition === condition);
-                    if (colorSection && activeColors.includes(colorSection.id)) {
+                    const colorId = conditionToColorId.get(condition);
+                    if (activeColors.includes(colorId)) {
                         roadFeatures.push({
                             type: "Feature",
                             geometry: {
@@ -157,7 +151,7 @@ const Maps = ({ bikeData }) => {
             type: "FeatureCollection",
             features: roadFeatures
         };
-    }, [bikeData, activeTimeFrame, activeColors]);
+    }, [bikeData, activeColors]);
 
     const handleTimeFrameClick = (timeFrame) => {
         setActiveTimeFrame(timeFrame);
@@ -165,15 +159,19 @@ const Maps = ({ bikeData }) => {
 
     const handleColorClick = (colorId) => {
         if (activeColors.includes(colorId)) {
-        setActiveColors(activeColors.filter(id => id !== colorId));
+            setActiveColors(activeColors.filter(id => id !== colorId));
         } else {
-        setActiveColors([...activeColors, colorId]);
+            setActiveColors([...activeColors, colorId]);
         }
+        setGeoJsonKey(prevKey => prevKey + 1);
     };
 
     const activeIndex = timeFrames.findIndex(tf => tf.id === activeTimeFrame);
 
-    const getRoadColor = (condition) => roadColors[condition] || "#000";
+    const getRoadColor = (condition) => {
+        const roadCondition = roadConditions.find(c => c.condition === condition);
+        return roadCondition ? roadCondition.color : "#000";
+    };
 
     // Calcular el centro del mapa basado en los datos disponibles
     const mapCenter = useMemo(() => {
@@ -218,6 +216,7 @@ const Maps = ({ bikeData }) => {
                     <MapContainer center={mapCenter} zoom={13} className="map-box">
                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                         <GeoJSON
+                            key={geoJsonKey}
                             data={roadsGeoJson}
                             style={(feature) => ({
                                 color: getRoadColor(feature.properties.condition),
@@ -227,7 +226,7 @@ const Maps = ({ bikeData }) => {
                         />
                     </MapContainer>
                     <div className="color-sections">
-                        {colorSections.map((section) => (
+                        {roadConditions.map((section) => (
                         <div 
                             key={section.id}
                             className={`color-section ${activeColors.includes(section.id) ? 'active' : ''}`}
@@ -247,7 +246,7 @@ const Maps = ({ bikeData }) => {
                     activeTimeFrame === '1m' ? 'último mes' : 'todo el tiempo'}</p>
                 <p>Filtros activos: {activeColors.length === 0 ? 'Ninguno' : 
                     activeColors.map(color => {
-                        const section = colorSections.find(s => s.id === color);
+                        const section = roadConditions.find(s => s.id === color);
                         return section ? section.condition : '';
                     }).join(', ')}</p>
                 <p>Total de puntos GPS: {heatmapData.length}</p>
