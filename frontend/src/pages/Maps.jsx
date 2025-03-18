@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.heat";
@@ -9,7 +9,7 @@ const Heatmap = ({ data }) => {
     const map = useMap();
 
     useEffect(() => {
-        if (!map) return;
+        if (!map || !data || data.length === 0) return;
 
         // Gradiente personalizado segun intensidad -> A retocar
         const gradient = {
@@ -21,15 +21,14 @@ const Heatmap = ({ data }) => {
             1.0: 'darkred'
         };
 
-        const heatLayer = L.heatLayer(
-            data.map(point => [point.lat, point.lng, point.intensity]),
-            {
-                radius: 25,   // Ajustar tamaño de puntos (>tamaño, >mancha de calor)
-                blur: 25,     // Marca más los puntos cuanto mas bajo es, si sube los difumina (se integran mejor)
-                maxZoom: 17,  // Ajusta el nivel máximo de zoom al que el mapa sera visible. A mayor, mapa con mas detalle
-                gradient: gradient,  
-            }
-        ).addTo(map);
+        const heatmapPoints = data.map(point => [point.lat, point.lng]);
+
+        const heatLayer = L.heatLayer(heatmapPoints, {
+            radius: 25,
+            blur: 25,
+            maxZoom: 17,
+            gradient: gradient,  
+        }).addTo(map);
 
         return () => {
             map.removeLayer(heatLayer);
@@ -39,9 +38,9 @@ const Heatmap = ({ data }) => {
     return null;
 };
 
-const Maps = () => {
+const Maps = ({ bikeData }) => {
     const [activeTimeFrame, setActiveTimeFrame] = useState('1d');
-    const [activeColors, setActiveColors] = useState([]);
+    const [activeColors, setActiveColors] = useState(['green', 'yellow', 'orange', 'red']);
 
     const timeFrames = [
         { id: '1d', label: '1d' },
@@ -49,13 +48,116 @@ const Maps = () => {
         { id: '1m', label: '1m' },
         { id: 'tot', label: 'Tot' }
     ];
+
+    const roadColors = {
+        good: "#4CAF50",
+        mid: "#FFEB3B",
+        bad: "#FF9800",
+        very_bad: "#F44336"
+    };
     
     const colorSections = [
-        { id: 'green', color: '#4CAF50' },
-        { id: 'yellow', color: '#FFEB3B' },
-        { id: 'orange', color: '#FF9800' },
-        { id: 'red', color: '#F44336' }
+        { id: 'green', color: roadColors.good, condition: 'good' },
+        { id: 'yellow', color: roadColors.mid, condition: 'mid' },
+        { id: 'orange', color: roadColors.bad, condition: 'bad' },
+        { id: 'red', color: roadColors.very_bad, condition: 'very_bad' }
     ];
+
+    // Función para calcular la ventana de tiempo según el filtro 
+    const getTimeWindow = () => {
+        const now = new Date();
+        switch (activeTimeFrame) {
+            case '1d':
+                return new Date(now.setDate(now.getDate() - 1));
+            case '1w':
+                return new Date(now.setDate(now.getDate() - 7));
+            case '1m':
+                return new Date(now.setMonth(now.getMonth() - 1));
+            case 'tot':
+                return new Date(0); 
+            default:
+                return new Date(now.setDate(now.getDate() - 1));
+        }
+    };
+
+    const heatmapData = useMemo(() => {
+        if (!bikeData || bikeData.length === 0) return [];
+        
+        const timeWindow = getTimeWindow();
+        const filteredData = bikeData.filter(item => new Date(item.fecha) >= timeWindow);
+        
+        return filteredData
+            .filter(item => item.latitud && item.longitud)
+            .map(item => ({
+                lat: parseFloat(item.latitud),
+                lng: parseFloat(item.longitud)
+            }));
+    }, [bikeData, activeTimeFrame]);
+
+    const roadsGeoJson = useMemo(() => {
+        if (!bikeData || bikeData.length === 0) return { type: "FeatureCollection", features: [] };
+        
+        const timeWindow = getTimeWindow();
+        const filteredData = bikeData.filter(item => new Date(item.fecha) >= timeWindow);
+        const roadFeatures = [];
+        
+        // Ordenar los datos por bike_id y fecha para poder emparejar puntos consecutivos
+        const sortedData = [...filteredData]
+            .filter(item => item.latitud && item.longitud && item.puntuacion_road)
+            .sort((a, b) => {
+                if (a.bike_id !== b.bike_id) return a.bike_id - b.bike_id;
+                return new Date(a.fecha) - new Date(b.fecha);
+            });
+
+        const getConditionFromScore = (score) => {
+            switch (parseInt(score)) {
+                case 1: return "good";
+                case 2: return "mid";
+                case 3: return "bad";
+                case 4: return "very_bad";
+                default: return "good";
+            }
+        };
+
+        for (let i = 1; i < sortedData.length; i++) {
+            const currentPoint = sortedData[i];
+            const prevPoint = sortedData[i - 1];
+
+            // Misma bici y deben haber pasado menos de 5 segundos
+            if (currentPoint.bike_id === prevPoint.bike_id) {
+                const timeDiff = Math.abs(new Date(currentPoint.fecha) - new Date(prevPoint.fecha)) / 1000;
+                
+                if (timeDiff <= 5) {
+                    const condition = getConditionFromScore(currentPoint.puntuacion_road);
+                    
+                    // Solo agregar la línea si el color está activo
+                    const colorSection = colorSections.find(cs => cs.condition === condition);
+                    if (colorSection && activeColors.includes(colorSection.id)) {
+                        roadFeatures.push({
+                            type: "Feature",
+                            geometry: {
+                                type: "LineString",
+                                coordinates: [
+                                    [parseFloat(prevPoint.longitud), parseFloat(prevPoint.latitud)],
+                                    [parseFloat(currentPoint.longitud), parseFloat(currentPoint.latitud)]
+                                ],
+                            },
+                            properties: { 
+                                condition: condition,
+                                bike_id: currentPoint.bike_id,
+                                time: currentPoint.fecha
+                            },
+                        });
+                    }
+                }
+            }
+        }
+
+        return {
+            type: "FeatureCollection",
+            features: roadFeatures
+        };
+    }, [bikeData, activeTimeFrame, activeColors]);
 
     const handleTimeFrameClick = (timeFrame) => {
         setActiveTimeFrame(timeFrame);
@@ -71,172 +173,22 @@ const Maps = () => {
 
     const activeIndex = timeFrames.findIndex(tf => tf.id === activeTimeFrame);
 
-    //Datos prueba: Para el mapa de calor, la intensidad será un valor a calcular en el futuro (con la cantidad de objetos por area o asi)
-    const heatmapData = [
-        { lat: 43.263, lng: -2.935, intensity: 0.9 },
-        { lat: 43.265, lng: -2.938, intensity: 1.0 },
-        { lat: 43.260, lng: -2.930, intensity: 0.8 },
-        { lat: 43.261, lng: -2.937, intensity: 0.7 },
-        { lat: 43.264, lng: -2.939, intensity: 1.0 },
-        { lat: 43.258, lng: -2.931, intensity: 0.9 },
-        { lat: 43.267, lng: -2.940, intensity: 0.8 },
-        { lat: 43.262, lng: -2.933, intensity: 0.7 },
-        { lat: 43.266, lng: -2.934, intensity: 0.9 },
-        { lat: 43.259, lng: -2.936, intensity: 1.0 },
-        { lat: 43.268, lng: -2.931, intensity: 0.9 },
-        { lat: 43.269, lng: -2.932, intensity: 1.0 },
-        { lat: 43.270, lng: -2.933, intensity: 0.8 },
-        { lat: 43.271, lng: -2.934, intensity: 0.7 },
-        { lat: 43.263, lng: -2.935, intensity: 0.5 },
-        { lat: 43.264, lng: -2.936, intensity: 0.6 },
-        { lat: 43.265, lng: -2.937, intensity: 0.7 },
-        { lat: 43.262, lng: -2.934, intensity: 0.8 },
-        { lat: 43.266, lng: -2.938, intensity: 0.9 },
-        { lat: 43.261, lng: -2.933, intensity: 0.7 },
-        { lat: 43.267, lng: -2.939, intensity: 0.8 },
-        { lat: 43.260, lng: -2.932, intensity: 0.6 },
-        { lat: 43.268, lng: -2.940, intensity: 0.9 },
-        { lat: 43.263, lng: -2.930, intensity: 0.5 },
-        { lat: 43.269, lng: -2.941, intensity: 0.8 },
-        { lat: 43.262, lng: -2.931, intensity: 0.7 },
-        { lat: 43.264, lng: -2.937, intensity: 0.6 },
-        { lat: 43.265, lng: -2.932, intensity: 0.9 },
-        { lat: 43.266, lng: -2.935, intensity: 0.7 },
-        { lat: 43.2635, lng: -2.9355, intensity: 0.6 },
-        { lat: 43.2645, lng: -2.9365, intensity: 0.7 },
-        { lat: 43.2655, lng: -2.9375, intensity: 0.8 },
-        { lat: 43.2625, lng: -2.9345, intensity: 0.9 },
-        { lat: 43.2665, lng: -2.9385, intensity: 0.85 },
-        { lat: 43.263, lng: -2.935, intensity: 0.5 },
-        { lat: 43.265, lng: -2.938, intensity: 0.7 },
-        { lat: 43.260, lng: -2.930, intensity: 0.9 },
-        { lat: 43.261, lng: -2.937, intensity: 0.4 },
-        { lat: 43.264, lng: -2.939, intensity: 0.6 },
-        { lat: 43.258, lng: -2.931, intensity: 0.8 },
-        { lat: 43.267, lng: -2.940, intensity: 0.7 },
-        { lat: 43.262, lng: -2.933, intensity: 0.5 },
-        { lat: 43.266, lng: -2.934, intensity: 0.6 },
-        { lat: 43.259, lng: -2.936, intensity: 0.8 },
-        { lat: 43.268, lng: -2.931, intensity: 0.7 },
-        { lat: 43.269, lng: -2.932, intensity: 0.5 },
-        { lat: 43.270, lng: -2.933, intensity: 0.9 },
-        { lat: 43.271, lng: -2.934, intensity: 0.6 },
-        { lat: 43.273, lng: -2.935, intensity: 0.4 },
-        { lat: 43.274, lng: -2.936, intensity: 0.7 },
-        { lat: 43.272, lng: -2.937, intensity: 0.6 },
-        { lat: 43.275, lng: -2.938, intensity: 0.5 },
-        { lat: 43.276, lng: -2.939, intensity: 0.9 },
-        { lat: 43.277, lng: -2.930, intensity: 0.8 },
-        { lat: 43.278, lng: -2.931, intensity: 0.7 },
-        { lat: 43.279, lng: -2.932, intensity: 0.6 },
-        { lat: 43.280, lng: -2.933, intensity: 0.5 },
-        { lat: 43.281, lng: -2.934, intensity: 0.8 },
-        { lat: 43.282, lng: -2.935, intensity: 0.6 },
-        { lat: 43.283, lng: -2.936, intensity: 0.7 },
-        { lat: 43.284, lng: -2.937, intensity: 0.5 },
-        { lat: 43.285, lng: -2.938, intensity: 0.9 },
-        { lat: 43.286, lng: -2.939, intensity: 0.8 },
-        { lat: 43.287, lng: -2.940, intensity: 0.7 },
-        { lat: 43.288, lng: -2.931, intensity: 0.6 },
-        { lat: 43.289, lng: -2.932, intensity: 0.5 },
-        { lat: 43.290, lng: -2.933, intensity: 0.7 },
-        { lat: 43.291, lng: -2.934, intensity: 0.8 },
-        { lat: 43.292, lng: -2.935, intensity: 0.9 },
-        { lat: 43.293, lng: -2.936, intensity: 0.7 },
-        { lat: 43.294, lng: -2.937, intensity: 0.6 },
-        { lat: 43.295, lng: -2.938, intensity: 0.5 },
-        { lat: 43.296, lng: -2.939, intensity: 0.9 },
-        { lat: 43.297, lng: -2.930, intensity: 0.7 },
-        { lat: 43.298, lng: -2.931, intensity: 0.6 },
-        { lat: 43.299, lng: -2.932, intensity: 0.8 },
-        { lat: 43.300, lng: -2.933, intensity: 0.7 },
-        { lat: 43.301, lng: -2.934, intensity: 0.9 },
-        { lat: 43.302, lng: -2.935, intensity: 0.6 },
-        { lat: 43.303, lng: -2.936, intensity: 0.5 },
-        { lat: 43.304, lng: -2.937, intensity: 0.8 },
-        { lat: 43.305, lng: -2.938, intensity: 0.9 },
-        { lat: 43.306, lng: -2.939, intensity: 0.7 },
-        { lat: 43.307, lng: -2.940, intensity: 0.6 },
-        { lat: 43.308, lng: -2.931, intensity: 0.7 },
-        { lat: 43.309, lng: -2.932, intensity: 0.5 },
-        { lat: 43.310, lng: -2.933, intensity: 0.8 },
-        { lat: 43.311, lng: -2.934, intensity: 0.9 },
-        { lat: 43.312, lng: -2.935, intensity: 0.6 },
-        { lat: 43.313, lng: -2.936, intensity: 0.5 },
-        { lat: 43.314, lng: -2.937, intensity: 0.7 },
-        { lat: 43.315, lng: -2.938, intensity: 0.8 },
-        { lat: 43.316, lng: -2.939, intensity: 0.7 },
-        { lat: 43.317, lng: -2.940, intensity: 0.6 },
-        { lat: 43.318, lng: -2.931, intensity: 0.5 },
-        { lat: 43.319, lng: -2.932, intensity: 0.8 },
-        { lat: 43.320, lng: -2.933, intensity: 0.7 },
-        { lat: 43.321, lng: -2.934, intensity: 0.9 },
-        { lat: 43.322, lng: -2.935, intensity: 0.6 },
-        { lat: 43.323, lng: -2.936, intensity: 0.5 },
-        { lat: 43.324, lng: -2.937, intensity: 0.7 },
-        { lat: 43.325, lng: -2.938, intensity: 0.6 },
-        { lat: 43.326, lng: -2.939, intensity: 0.9 },
-        { lat: 43.327, lng: -2.930, intensity: 0.5 },
-        { lat: 43.328, lng: -2.931, intensity: 0.7 },
-        { lat: 43.329, lng: -2.932, intensity: 0.6 },
-        { lat: 43.330, lng: -2.933, intensity: 0.5 },
-        { lat: 43.331, lng: -2.934, intensity: 0.8 },
-        { lat: 43.332, lng: -2.935, intensity: 0.9 },
-        { lat: 43.333, lng: -2.936, intensity: 0.7 },
-        { lat: 43.334, lng: -2.937, intensity: 0.6 },
-        { lat: 43.335, lng: -2.938, intensity: 0.5 }
-    ];
-      
-    const roadsGeoJson = {
-        type: "FeatureCollection",
-        features: [
-            {
-                type: "Feature",
-                geometry: {
-                    type: "LineString",
-                    coordinates: [
-                        [-2.935, 43.263],
-                        [-2.938, 43.265],
-                    ],
-                },
-                properties: { condition: "bad" },
-            },
-            {
-                type: "Feature",
-                geometry: {
-                    type: "LineString",
-                    coordinates: [
-                        [-2.930, 43.260],
-                        [-2.935, 43.263],
-                    ],
-                },
-                properties: { condition: "good" },
-            },
-        ],
-    };
-    
-    // Los colores de los botones, en funcion de como sea la carretera
-    const getRoadColor = (condition) => {
-        switch (condition) {
-            case "good":
-                return "#4CAF50"; 
-            case "mid":
-                return "#FFEB3B"; 
-            case "bad":
-                return "#FF9800"; 
-            case "very bad":
-                return "#F44336"; 
-            default:
-                return "#000";
+    const getRoadColor = (condition) => roadColors[condition] || "#000";
+
+    // Calcular el centro del mapa basado en los datos disponibles
+    const mapCenter = useMemo(() => {
+        if (heatmapData.length > 0) {
+            return [heatmapData[0].lat, heatmapData[0].lng];
         }
-    };
+        return [43.263, -2.935]; 
+    }, [heatmapData]);
 
     return (
         <div className="maps-container">
             <div className="maps-row">
                 <div className="map-box-container">
                     <h3 className="map-box-title">Flujo de ciclistas</h3>
-                    <MapContainer center={[43.263, -2.935]} zoom={13} className="map-box">
+                    <MapContainer center={mapCenter} zoom={13} className="map-box">
                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                         <Heatmap data={heatmapData} />
                     </MapContainer>
@@ -263,7 +215,7 @@ const Maps = () => {
                 </div>
                 <div className="map-box-container">
                     <h3 className="map-box-title">Estado de carreteras y carriles</h3>
-                    <MapContainer center={[43.263, -2.935]} zoom={13} className="map-box">
+                    <MapContainer center={mapCenter} zoom={13} className="map-box">
                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                         <GeoJSON
                             data={roadsGeoJson}
@@ -289,9 +241,17 @@ const Maps = () => {
                 </div>
             </div>
             <div className="maps-info card">
-                <h3>Información</h3>
-                <p>This area will contain information about the maps above.</p>
-                <p>You can display route information, sensor readings, and other data related to bike usage here.</p>
+            <h3>Información</h3>
+                <p>Mostrando datos de {activeTimeFrame === '1d' ? 'último día' : 
+                    activeTimeFrame === '1w' ? 'última semana' : 
+                    activeTimeFrame === '1m' ? 'último mes' : 'todo el tiempo'}</p>
+                <p>Filtros activos: {activeColors.length === 0 ? 'Ninguno' : 
+                    activeColors.map(color => {
+                        const section = colorSections.find(s => s.id === color);
+                        return section ? section.condition : '';
+                    }).join(', ')}</p>
+                <p>Total de puntos GPS: {heatmapData.length}</p>
+                <p>Total de segmentos de carretera: {roadsGeoJson.features.length}</p>
             </div>
         </div>
     );

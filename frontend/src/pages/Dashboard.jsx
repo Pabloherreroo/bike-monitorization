@@ -1,24 +1,103 @@
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import '../styles/Dashboard.css';
 
-const Dashboard = ({ externalAirQualityData, externalNoiseData }) => {
+const Dashboard = ({ bikeData }) => {
     
-    const [airQualityData, setAirQualityData] = useState(externalAirQualityData);
-    const [noiseData, setNoiseData] = useState(externalNoiseData);
+    const processedData = useMemo(() => {
+        // Verificamos si hay datos disponibles y si no predeterminados
+        if (!bikeData || bikeData.length === 0) {
+            return {
+                airValueBilbao: 0,
+                noiseValueBilbao: 0,
+                bestAirQuality: [],
+                worstAirQuality: [],
+                quietestAreas: [],
+                noisestAreas: [],
+                angle: -90,
+                noisePosition: 100 
+            };
+        }
 
-    const airValueBilbao = Math.round(
-        airQualityData.reduce((sum, { value }) => sum + value, 0) / airQualityData.length
-    );
-    // Convertirlo en angulo
-    const angle = (airValueBilbao * 180 / 100) - 90;
-
-    const bestAirQuality = [...airQualityData]
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 2); // Cojo 2
-
-    const worstAirQuality = [...airQualityData]
-        .sort((a, b) => a.value - b.value)
-        .slice(0, 2);
+        // Solo ultimos 2 días
+        const dosdiasAtras = new Date();
+        dosdiasAtras.setDate(dosdiasAtras.getDate() - 2);
+        
+        const datosFiltrados = bikeData.filter(dato => {
+            const fechaDato = new Date(dato.fecha);
+            return fechaDato >= dosdiasAtras;
+        });
+        
+        const airValueBilbao = Math.round(
+            datosFiltrados.reduce((sum, dato) => sum + dato.calidad_ambiental, 0) / datosFiltrados.length
+        );
+        
+        const noiseValueBilbao = Math.round(
+            datosFiltrados.reduce((sum, dato) => sum + dato.ruido, 0) / datosFiltrados.length
+        );
+        
+        const barriosMap = {};
+        
+        datosFiltrados.forEach(dato => {
+            if (!dato.barrio) return; // Ignoramos datos sin barrio
+            if (!barriosMap[dato.barrio]) {
+                barriosMap[dato.barrio] = {
+                    totalCalidadAmbiental: 0,
+                    totalRuido: 0,
+                    count: 0
+                };
+            }
+            barriosMap[dato.barrio].totalCalidadAmbiental += dato.calidad_ambiental;
+            barriosMap[dato.barrio].totalRuido += dato.ruido;
+            barriosMap[dato.barrio].count++;
+        });
+        
+        const barriosAirQuality = [];
+        const barriosNoise = [];
+        
+        Object.entries(barriosMap).forEach(([barrio, datos]) => {
+            if (datos.count > 0) {
+                barriosAirQuality.push({
+                    name: barrio,
+                    value: Math.round(datos.totalCalidadAmbiental / datos.count)
+                });
+                
+                barriosNoise.push({
+                    name: barrio,
+                    value: Math.round(datos.totalRuido / datos.count)
+                });
+            }
+        });
+        
+        const bestAirQuality = [...barriosAirQuality]
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 2);
+            
+        const worstAirQuality = [...barriosAirQuality]
+            .sort((a, b) => a.value - b.value)
+            .slice(0, 2);
+            
+        const quietestAreas = [...barriosNoise]
+            .sort((a, b) => a.value - b.value)
+            .slice(0, 2);
+            
+        const noisestAreas = [...barriosNoise]
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 2);
+        
+        const angle = (airValueBilbao * 180 / 100) - 90;
+        const noisePosition = 100 - (noiseValueBilbao / 120 * 100);
+        
+        return {
+            airValueBilbao,
+            noiseValueBilbao,
+            bestAirQuality,
+            worstAirQuality,
+            quietestAreas,
+            noisestAreas,
+            angle,
+            noisePosition
+        };
+    }, [bikeData]);
 
     const getAirColorClass = (value) => {
         if (value >= 80) return "good-indicator";
@@ -27,20 +106,6 @@ const Dashboard = ({ externalAirQualityData, externalNoiseData }) => {
         if (value >= 20) return "bad-indicator";
         return "worst-indicator";
     };
-    
-    const noiseValueBilbao = Math.round(
-        noiseData.reduce((sum, { value }) => sum + value, 0) / noiseData.length
-    );
-    // Convertirlo en posición vertical (0-120dB)
-    const noisePosition = 100 - (noiseValueBilbao / 120 * 100); // 0 abajo, 120 arriba
-
-    const quietestAreas = [...noiseData]
-        .sort((a, b) => a.value - b.value)
-        .slice(0, 2); 
-
-    const noisestAreas = [...noiseData]
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 2); 
 
     const getNoiseColorClass = (value) => {
         if (value <= 25) return "good-indicator";
@@ -49,12 +114,6 @@ const Dashboard = ({ externalAirQualityData, externalNoiseData }) => {
         if (value <= 100) return "bad-indicator";
         return "worst-indicator";
     };
-
-    // Esto hace que se actualice cuando cambien los valores externos
-    useEffect(() => {
-        setAirQualityData(externalAirQualityData);
-        setNoiseData(externalNoiseData);
-    }, [externalAirQualityData, externalNoiseData]);
 
     return (
         <div>
@@ -68,21 +127,21 @@ const Dashboard = ({ externalAirQualityData, externalNoiseData }) => {
                                 <div className="gauge">
                                     <div className="gauge-sections"></div>
                                     {/* Hago aquí el estilo dinámico de la aguja porque depende de una variable de ángulo */}
-                                    <div className="gauge-needle" style={{ transform: `rotate(${angle}deg)` }}></div>
+                                    <div className="gauge-needle" style={{ transform: `rotate(${processedData.angle}deg)` }}></div>
                                     <div className="gauge-center"></div>
                                 </div>
                             </div>
                             <div className="city-info">
                                 <div className="city-name">Bilbao</div>
-                                <div className="city-score">{airValueBilbao} %</div>
+                                <div className="city-score">{processedData.airValueBilbao} %</div>
                             </div>
                         </div>
                         <div className="air-quality-divider"></div>
                         <div className="air-quality-right">
-                            {/* Establezco los colores correctos para los datos del array de arriba */}
+                            {/* Establezco los colores correctos para los datos de arriba */}
                             <div className="air-quality-rankings top-rankings">
                                 <h4>Lugares menos contaminados</h4>
-                                {bestAirQuality.map((item, index) => (
+                                {processedData.bestAirQuality.map((item, index) => (
                                     <div key={index} className="ranking-item">
                                         <span className="ranking-name">{item.name}</span>
                                         <div className="ranking-score">
@@ -94,7 +153,7 @@ const Dashboard = ({ externalAirQualityData, externalNoiseData }) => {
                             </div>
                             <div className="air-quality-rankings bottom-rankings">
                                 <h4>Lugares más contaminados</h4>
-                                {worstAirQuality.map((item, index) => (
+                                {processedData.worstAirQuality.map((item, index) => (
                                     <div key={index} className="ranking-item">
                                         <span className="ranking-name">{item.name}</span>
                                         <div className="ranking-score">
@@ -121,21 +180,21 @@ const Dashboard = ({ externalAirQualityData, externalNoiseData }) => {
                                         <div className="noise-meter">
                                             <div className="noise-meter-gradient"></div>
                                             {/* Línea horizontal que muestra el nivel de ruido actual */}
-                                            <div className="noise-meter-indicator" style={{ top: `${noisePosition}%` }}></div>
+                                            <div className="noise-meter-indicator" style={{ top: `${processedData.noisePosition}%` }}></div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <div className="city-info">
                                 <div className="city-name">Bilbao</div>
-                                <div className="city-score">{noiseValueBilbao} dB</div>
+                                <div className="city-score">{processedData.noiseValueBilbao} dB</div>
                             </div>
                         </div>
                         <div className="noise-divider"></div>
                         <div className="noise-right">
                             <div className="noise-rankings top-rankings">
                                 <h4>Zonas más silenciosas</h4>
-                                {quietestAreas.map((item, index) => (
+                                {processedData.quietestAreas.map((item, index) => (
                                     <div key={index} className="ranking-item">
                                         <span className="ranking-name">{item.name}</span>
                                         <div className="ranking-score">
@@ -147,7 +206,7 @@ const Dashboard = ({ externalAirQualityData, externalNoiseData }) => {
                             </div>
                             <div className="noise-rankings bottom-rankings">
                                 <h4>Zonas más ruidosas</h4>
-                                {noisestAreas.map((item, index) => (
+                                {processedData.noisestAreas.map((item, index) => (
                                     <div key={index} className="ranking-item">
                                         <span className="ranking-name">{item.name}</span>
                                         <div className="ranking-score">

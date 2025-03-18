@@ -5,7 +5,7 @@ from app.database import get_db
 
 router = APIRouter()
 
-# Consultas a servidor
+# Consultas a servidor -> A CAMBIAR
 @router.post("/bike_data", response_model=schemas.BikeData)
 def crear_bike_data(data: schemas.BikeDataCreate, db: Session = Depends(get_db)):
     # Si el campo 'barrio' viene vacío o hay que recalcularlo (igual aplica a mas campos):
@@ -35,4 +35,10 @@ def crear_bike_data(data: schemas.BikeDataCreate, db: Session = Depends(get_db))
 def obtener_bike_data(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     datos = db.query(models.BikeData).offset(skip).limit(limit).all()
     return datos
+
+@router.get("/bikes", response_model=list[schemas.Bike])
+def obtener_bikes(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    bikes = db.query(models.Bike).offset(skip).limit(limit).all()
+    return bikes
+
  

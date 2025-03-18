@@ -1,4 +1,4 @@
-#CODIGO A RECICLAR PARA DETERMINAR EL BARRIO Y ASIGNARLO EN LA BD -> Problema que son cuadrados los barrios aqui
+# CODIGO A RECICLAR PARA DETERMINAR EL BARRIO Y ASIGNARLO EN LA BD -> Problema que son cuadrados los barrios aqui
 
 from typing import List
 
@@ -15,3 +15,5 @@ def obtener_barrio(latitud: float, longitud: float) -> int:
         if barrio["lat_min"] <= latitud <= barrio["lat_max"] and barrio["lng_min"] <= longitud <= barrio["lng_max"]:
             return barrio["id"]  
     return None 
+
+# MAS FUNCIONES QUE NECESITO: CALCULAR SI LA BICI ESTA PARADA O NO (SI HA MANDADO HACE MENOS DE 30S), CALCULAR SI 
