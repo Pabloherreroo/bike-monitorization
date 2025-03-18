@@ -1,0 +1,654 @@
+-- ===============================================================
+-- Fichero: populate.sql
+-- Descripción: Pobla la base de datos bicicleta_data con 10 bicis y 500 filas de datos de sensado,
+--              simulando rutas reales en distintos distritos de Bilbao.
+-- ===============================================================
+
+-- Inserción de bicicletas
+INSERT INTO bikes (bike_id, estado) VALUES ('bike_1', 'parada');
+INSERT INTO bikes (bike_id, estado) VALUES ('bike_2', 'parada');
+INSERT INTO bikes (bike_id, estado) VALUES ('bike_3', 'en funcionamiento');
+INSERT INTO bikes (bike_id, estado) VALUES ('bike_4', 'parada');
+INSERT INTO bikes (bike_id, estado) VALUES ('bike_5', 'en funcionamiento');
+INSERT INTO bikes (bike_id, estado) VALUES ('bike_6', 'parada');
+INSERT INTO bikes (bike_id, estado) VALUES ('bike_7', 'parada');
+INSERT INTO bikes (bike_id, estado) VALUES ('bike_8', 'parada');
+INSERT INTO bikes (bike_id, estado) VALUES ('bike_9', 'parada');
+INSERT INTO bikes (bike_id, estado) VALUES ('bike_10', 'parada');
+
+-- ===============================================================
+-- Inserción de datos de sensores (bike_data)
+-- Se generan 20 rutas (2 por bici) con datos de trayectoria:
+--   - Cada ruta tiene marcas temporales consecutivas a 1s de diferencia.
+--   - La posición inicia en un punto basado en el distrito y se va actualizando
+--     (con incrementos de 0.00005 en latitud y 0.00002 en longitud, salvo en algunos instantes donde se "para").
+--   - Los distritos y valores ambientales (calidad_ambiental, ruido, puntuacion_road) se asignan según:
+--       Abando:               (base: 43.2630, -2.9350) --> calidad:75, ruido:65, road:3
+--       Basurto-Zorroza:      (base: 43.2530, -2.9380) --> calidad:70, ruido:68, road:2
+--       Begoña:               (base: 43.2850, -2.9490) --> calidad:80, ruido:60, road:4
+--       Deusto:               (base: 43.2520, -2.9600) --> calidad:65, ruido:70, road:2
+--       Ibaiondo:             (base: 43.2620, -2.9320) --> calidad:75, ruido:66, road:3
+--       Otxarkoaga-Txurdinaga:(base: 43.3000, -2.9700) --> calidad:60, ruido:72, road:1
+--       Rekalde:              (base: 43.2650, -2.9200) --> calidad:78, ruido:64, road:3
+--       Uribarri:             (base: 43.2550, -2.9300) --> calidad:74, ruido:67, road:3
+--
+-- Además, se han elegido tres distintos momentos temporales:
+--    * Ruta "1" para cada bici: 18/03/2025 por la mañana (diferentes offsets en minutos)
+--    * Ruta "2": alternando entre datos del 04/03/2025 y del 20/01/2025.
+--
+-- La siguiente distribución de rutas se ha asignado:
+--
+-- Bike 1:
+--   - Ruta 1: Abando,    inicio '2025-03-18 08:00:00', 30 filas.
+--   - Ruta 2: Basurto-Zorroza, inicio '2025-03-04 09:00:00', 20 filas.
+--
+-- Bike 2:
+--   - Ruta 1: Begoña,    inicio '2025-03-18 08:10:00', 30 filas.
+--   - Ruta 2: Deusto,    inicio '2025-01-20 07:30:00', 20 filas.
+--
+-- Bike 3:
+--   - Ruta 1: Ibaiondo,  inicio '2025-03-18 08:20:00', 30 filas.
+--   - Ruta 2: Otxarkoaga-Txurdinaga, inicio '2025-03-04 09:05:00', 20 filas.
+--
+-- Bike 4:
+--   - Ruta 1: Rekalde,   inicio '2025-03-18 08:30:00', 30 filas.
+--   - Ruta 2: Uribarri,  inicio '2025-01-20 07:40:00', 20 filas.
+--
+-- Bike 5:
+--   - Ruta 1: Abando,    inicio '2025-03-18 08:40:00', 30 filas.
+--   - Ruta 2: Basurto-Zorroza, inicio '2025-03-04 09:10:00', 20 filas.
+--
+-- Bike 6:
+--   - Ruta 1: Begoña,    inicio '2025-03-18 08:50:00', 30 filas.
+--   - Ruta 2: Deusto,    inicio '2025-01-20 07:50:00', 20 filas.
+--
+-- Bike 7:
+--   - Ruta 1: Ibaiondo,  inicio '2025-03-18 09:00:00', 30 filas.
+--   - Ruta 2: Otxarkoaga-Txurdinaga, inicio '2025-03-04 09:15:00', 20 filas.
+--
+-- Bike 8:
+--   - Ruta 1: Rekalde,   inicio '2025-03-18 09:10:00', 30 filas.
+--   - Ruta 2: Uribarri,  inicio '2025-01-20 08:00:00', 20 filas.
+--
+-- Bike 9:
+--   - Ruta 1: Abando,    inicio '2025-03-18 09:20:00', 30 filas.
+--   - Ruta 2: Basurto-Zorroza, inicio '2025-03-04 09:20:00', 20 filas.
+--
+-- Bike 10:
+--   - Ruta 1: Begoña,    inicio '2025-03-18 09:30:00', 30 filas.
+--   - Ruta 2: Deusto,    inicio '2025-01-20 08:10:00', 20 filas.
+--
+-- En cada ruta la generación de coordenadas es la siguiente:
+--   - Punto inicial = (base_lat + 0.0001, base_lon + 0.0001)
+--   - Para cada segundo (i) de la ruta:
+--         si i mod 10 == 5 → se repite la posición anterior (simulando parada)
+--         en otro caso se suma delta: +0.00005 a la latitud y +0.00002 a la longitud.
+--   - La marca de tiempo se incrementa 1 segundo a cada fila.
+-- ===============================================================
+
+-- ************** BIKE 1 **************
+-- Ruta 1: Bike 1, Abando, 30 filas, inicio '2025-03-18 08:00:00'
+-- Base: (43.2630, -2.9350)  → punto inicial: (43.2631, -2.9349)
+-- Valores: puntuacion_road=3, calidad_ambiental=75, ruido=65
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.263100, -2.934900, 3, 75, 65, 'Abando', '2025-03-18 08:00:00+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.263150, -2.934880, 3, 75, 65, 'Abando', '2025-03-18 08:00:01+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.263200, -2.934860, 3, 75, 65, 'Abando', '2025-03-18 08:00:02+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.263250, -2.934840, 3, 75, 65, 'Abando', '2025-03-18 08:00:03+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.263300, -2.934820, 3, 75, 65, 'Abando', '2025-03-18 08:00:04+00');
+-- (i=5: parada)
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.263300, -2.934820, 3, 75, 65, 'Abando', '2025-03-18 08:00:05+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.263350, -2.934800, 3, 75, 65, 'Abando', '2025-03-18 08:00:06+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.263400, -2.934780, 3, 75, 65, 'Abando', '2025-03-18 08:00:07+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.263450, -2.934760, 3, 75, 65, 'Abando', '2025-03-18 08:00:08+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.263500, -2.934740, 3, 75, 65, 'Abando', '2025-03-18 08:00:09+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.263550, -2.934720, 3, 75, 65, 'Abando', '2025-03-18 08:00:10+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.263600, -2.934700, 3, 75, 65, 'Abando', '2025-03-18 08:00:11+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.263650, -2.934680, 3, 75, 65, 'Abando', '2025-03-18 08:00:12+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.263700, -2.934660, 3, 75, 65, 'Abando', '2025-03-18 08:00:13+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.263750, -2.934640, 3, 75, 65, 'Abando', '2025-03-18 08:00:14+00');
+-- (i=15: parada)
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.263750, -2.934640, 3, 75, 65, 'Abando', '2025-03-18 08:00:15+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.263800, -2.934620, 3, 75, 65, 'Abando', '2025-03-18 08:00:16+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.263850, -2.934600, 3, 75, 65, 'Abando', '2025-03-18 08:00:17+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.263900, -2.934580, 3, 75, 65, 'Abando', '2025-03-18 08:00:18+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.263950, -2.934560, 3, 75, 65, 'Abando', '2025-03-18 08:00:19+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.264000, -2.934540, 3, 75, 65, 'Abando', '2025-03-18 08:00:20+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.264050, -2.934520, 3, 75, 65, 'Abando', '2025-03-18 08:00:21+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.264100, -2.934500, 3, 75, 65, 'Abando', '2025-03-18 08:00:22+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.264150, -2.934480, 3, 75, 65, 'Abando', '2025-03-18 08:00:23+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.264200, -2.934460, 3, 75, 65, 'Abando', '2025-03-18 08:00:24+00');
+-- (i=25: parada)
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.264200, -2.934460, 3, 75, 65, 'Abando', '2025-03-18 08:00:25+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.264250, -2.934440, 3, 75, 65, 'Abando', '2025-03-18 08:00:26+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.264300, -2.934420, 3, 75, 65, 'Abando', '2025-03-18 08:00:27+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.264350, -2.934400, 3, 75, 65, 'Abando', '2025-03-18 08:00:28+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.264400, -2.934380, 3, 75, 65, 'Abando', '2025-03-18 08:00:29+00');
+
+-- Ruta 2: Bike 1, Basurto-Zorroza, 20 filas, inicio '2025-03-04 09:00:00'
+-- Base: (43.2530, -2.9380)  → punto inicial: (43.2531, -2.9379)
+-- Valores: puntuacion_road=2, calidad_ambiental=70, ruido=68
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.253100, -2.937900, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:00:00+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.253150, -2.937880, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:00:01+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.253200, -2.937860, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:00:02+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.253250, -2.937840, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:00:03+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.253300, -2.937820, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:00:04+00');
+-- (i=5: parada)
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.253300, -2.937820, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:00:05+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.253350, -2.937800, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:00:06+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.253400, -2.937780, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:00:07+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.253450, -2.937760, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:00:08+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.253500, -2.937740, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:00:09+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.253550, -2.937720, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:00:10+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.253600, -2.937700, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:00:11+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.253650, -2.937680, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:00:12+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.253700, -2.937660, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:00:13+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.253750, -2.937640, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:00:14+00');
+-- (i=15: parada)
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.253750, -2.937640, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:00:15+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.253800, -2.937620, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:00:16+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.253850, -2.937600, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:00:17+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.253900, -2.937580, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:00:18+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_1', 43.253950, -2.937560, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:00:19+00');
+
+-- ************** FIN BIKE 1 **************
+
+-- Para mayor claridad se incluyen a continuación las 18 rutas restantes.
+-- (Cada ruta se ha generado siguiendo exactamente el mismo patrón:
+--  - Se parte de la coordenada base + (0.0001,0.0001)
+--  - Se suma 0.00005 en latitud y 0.00002 en longitud por cada segundo, salvo cuando (i mod 10)==5 (se repite la coordenada).
+--  - Se incrementa 1 segundo la marca temporal por fila.
+--  - Se usan los valores ambientales correspondientes al distrito.
+--
+-- A continuación se listan todas las inserciones de datos para cada ruta.
+--
+
+-- ************** BIKE 2 **************
+-- Ruta 1: Bike 2, Begoña, 30 filas, inicio '2025-03-18 08:10:00'
+-- Base: (43.2850, -2.9490) → inicial: (43.2851, -2.9489)
+-- Valores: puntuacion_road=4, calidad_ambiental=80, ruido=60
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.285100, -2.948900, 4, 80, 60, 'Begoña', '2025-03-18 08:10:00+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.285150, -2.948880, 4, 80, 60, 'Begoña', '2025-03-18 08:10:01+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.285200, -2.948860, 4, 80, 60, 'Begoña', '2025-03-18 08:10:02+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.285250, -2.948840, 4, 80, 60, 'Begoña', '2025-03-18 08:10:03+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.285300, -2.948820, 4, 80, 60, 'Begoña', '2025-03-18 08:10:04+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.285300, -2.948820, 4, 80, 60, 'Begoña', '2025-03-18 08:10:05+00'); -- parada (i=5)
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.285350, -2.948800, 4, 80, 60, 'Begoña', '2025-03-18 08:10:06+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.285400, -2.948780, 4, 80, 60, 'Begoña', '2025-03-18 08:10:07+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.285450, -2.948760, 4, 80, 60, 'Begoña', '2025-03-18 08:10:08+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.285500, -2.948740, 4, 80, 60, 'Begoña', '2025-03-18 08:10:09+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.285550, -2.948720, 4, 80, 60, 'Begoña', '2025-03-18 08:10:10+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.285600, -2.948700, 4, 80, 60, 'Begoña', '2025-03-18 08:10:11+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.285650, -2.948680, 4, 80, 60, 'Begoña', '2025-03-18 08:10:12+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.285700, -2.948660, 4, 80, 60, 'Begoña', '2025-03-18 08:10:13+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.285750, -2.948640, 4, 80, 60, 'Begoña', '2025-03-18 08:10:14+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.285800, -2.948620, 4, 80, 60, 'Begoña', '2025-03-18 08:10:15+00'); -- parada (i=15)
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.285850, -2.948600, 4, 80, 60, 'Begoña', '2025-03-18 08:10:16+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.285900, -2.948580, 4, 80, 60, 'Begoña', '2025-03-18 08:10:17+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.285950, -2.948560, 4, 80, 60, 'Begoña', '2025-03-18 08:10:18+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.286000, -2.948540, 4, 80, 60, 'Begoña', '2025-03-18 08:10:19+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.286050, -2.948520, 4, 80, 60, 'Begoña', '2025-03-18 08:10:20+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.286100, -2.948500, 4, 80, 60, 'Begoña', '2025-03-18 08:10:21+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.286150, -2.948480, 4, 80, 60, 'Begoña', '2025-03-18 08:10:22+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.286200, -2.948460, 4, 80, 60, 'Begoña', '2025-03-18 08:10:23+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.286250, -2.948440, 4, 80, 60, 'Begoña', '2025-03-18 08:10:24+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.286300, -2.948420, 4, 80, 60, 'Begoña', '2025-03-18 08:10:25+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.286350, -2.948400, 4, 80, 60, 'Begoña', '2025-03-18 08:10:26+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.286400, -2.948380, 4, 80, 60, 'Begoña', '2025-03-18 08:10:27+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.286450, -2.948360, 4, 80, 60, 'Begoña', '2025-03-18 08:10:28+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.286500, -2.948340, 4, 80, 60, 'Begoña', '2025-03-18 08:10:29+00');
+
+-- Ruta 2: Bike 2, Deusto, 20 filas, inicio '2025-01-20 07:30:00'
+-- Base: (43.2520, -2.9600) → inicial: (43.2521, -2.9599)
+-- Valores: puntuacion_road=2, calidad_ambiental=65, ruido=70
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.252100, -2.959900, 2, 65, 70, 'Deusto', '2025-01-20 07:30:00+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.252150, -2.959880, 2, 65, 70, 'Deusto', '2025-01-20 07:30:01+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.252200, -2.959860, 2, 65, 70, 'Deusto', '2025-01-20 07:30:02+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.252250, -2.959840, 2, 65, 70, 'Deusto', '2025-01-20 07:30:03+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.252300, -2.959820, 2, 65, 70, 'Deusto', '2025-01-20 07:30:04+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.252300, -2.959820, 2, 65, 70, 'Deusto', '2025-01-20 07:30:05+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.252350, -2.959800, 2, 65, 70, 'Deusto', '2025-01-20 07:30:06+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.252400, -2.959780, 2, 65, 70, 'Deusto', '2025-01-20 07:30:07+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.252450, -2.959760, 2, 65, 70, 'Deusto', '2025-01-20 07:30:08+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.252500, -2.959740, 2, 65, 70, 'Deusto', '2025-01-20 07:30:09+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.252550, -2.959720, 2, 65, 70, 'Deusto', '2025-01-20 07:30:10+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.252600, -2.959700, 2, 65, 70, 'Deusto', '2025-01-20 07:30:11+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.252650, -2.959680, 2, 65, 70, 'Deusto', '2025-01-20 07:30:12+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.252700, -2.959660, 2, 65, 70, 'Deusto', '2025-01-20 07:30:13+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.252750, -2.959640, 2, 65, 70, 'Deusto', '2025-01-20 07:30:14+00');
+-- (i=15: parada)
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.252750, -2.959640, 2, 65, 70, 'Deusto', '2025-01-20 07:30:15+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.252800, -2.959620, 2, 65, 70, 'Deusto', '2025-01-20 07:30:16+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.252850, -2.959600, 2, 65, 70, 'Deusto', '2025-01-20 07:30:17+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.252900, -2.959580, 2, 65, 70, 'Deusto', '2025-01-20 07:30:18+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_2', 43.252950, -2.959560, 2, 65, 70, 'Deusto', '2025-01-20 07:30:19+00');
+
+-- ************** BIKE 3 **************
+-- Ruta 1: Bike 3, Ibaiondo, 30 filas, inicio '2025-03-18 08:20:00'
+-- Base: (43.2620, -2.9320) → inicial: (43.2621, -2.9319)
+-- Valores: puntuacion_road=3, calidad_ambiental=75, ruido=66
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.262100, -2.931900, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:00+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.262150, -2.931880, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:01+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.262200, -2.931860, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:02+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.262250, -2.931840, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:03+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.262300, -2.931820, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:04+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.262300, -2.931820, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:05+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.262350, -2.931800, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:06+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.262400, -2.931780, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:07+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.262450, -2.931760, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:08+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.262500, -2.931740, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:09+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.262550, -2.931720, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:10+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.262600, -2.931700, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:11+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.262650, -2.931680, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:12+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.262700, -2.931660, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:13+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.262750, -2.931640, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:14+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.262800, -2.931620, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:15+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.262850, -2.931600, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:16+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.262900, -2.931580, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:17+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.262950, -2.931560, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:18+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.263000, -2.931540, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:19+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.263050, -2.931520, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:20+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.263100, -2.931500, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:21+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.263150, -2.931480, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:22+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.263200, -2.931460, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:23+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.263250, -2.931440, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:24+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.263300, -2.931420, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:25+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.263350, -2.931400, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:26+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.263400, -2.931380, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:27+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.263450, -2.931360, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:28+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.263500, -2.931340, 3, 75, 66, 'Ibaiondo', '2025-03-18 08:20:29+00');
+
+-- Ruta 2: Bike 3, Otxarkoaga-Txurdinaga, 20 filas, inicio '2025-03-04 09:05:00'
+-- Base: (43.3000, -2.9700) → inicial: (43.3001, -2.9699)
+-- Valores: puntuacion_road=1, calidad_ambiental=60, ruido=72
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.300100, -2.969900, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:05:00+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.300150, -2.969880, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:05:01+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.300200, -2.969860, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:05:02+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.300250, -2.969840, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:05:03+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.300300, -2.969820, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:05:04+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.300300, -2.969820, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:05:05+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.300350, -2.969800, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:05:06+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.300400, -2.969780, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:05:07+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.300450, -2.969760, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:05:08+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.300500, -2.969740, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:05:09+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.300550, -2.969720, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:05:10+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.300600, -2.969700, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:05:11+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.300650, -2.969680, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:05:12+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.300700, -2.969660, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:05:13+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.300750, -2.969640, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:05:14+00');
+-- (i=15: parada)
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.300750, -2.969640, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:05:15+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.300800, -2.969620, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:05:16+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.300850, -2.969600, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:05:17+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.300900, -2.969580, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:05:18+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_3', 43.300950, -2.969560, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:05:19+00');
+
+-- ************** BIKE 4 **************
+-- Ruta 1: Bike 4, Rekalde, 30 filas, inicio '2025-03-18 08:30:00'
+-- Base: (43.2650, -2.9200) → inicial: (43.2651, -2.9199)
+-- Valores: puntuacion_road=3, calidad_ambiental=78, ruido=64
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.265100, -2.919900, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:00+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.265150, -2.919880, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:01+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.265200, -2.919860, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:02+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.265250, -2.919840, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:03+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.265300, -2.919820, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:04+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.265300, -2.919820, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:05+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.265350, -2.919800, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:06+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.265400, -2.919780, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:07+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.265450, -2.919760, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:08+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.265500, -2.919740, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:09+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.265550, -2.919720, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:10+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.265600, -2.919700, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:11+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.265650, -2.919680, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:12+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.265700, -2.919660, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:13+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.265750, -2.919640, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:14+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.265800, -2.919620, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:15+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.265850, -2.919600, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:16+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.265900, -2.919580, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:17+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.265950, -2.919560, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:18+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.266000, -2.919540, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:19+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.266050, -2.919520, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:20+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.266100, -2.919500, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:21+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.266150, -2.919480, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:22+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.266200, -2.919460, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:23+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.266250, -2.919440, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:24+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.266300, -2.919420, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:25+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.266350, -2.919400, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:26+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.266400, -2.919380, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:27+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.266450, -2.919360, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:28+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.266500, -2.919340, 3, 78, 64, 'Rekalde', '2025-03-18 08:30:29+00');
+
+-- Ruta 2: Bike 4, Uribarri, 20 filas, inicio '2025-01-20 07:40:00'
+-- Base: (43.2550, -2.9300) → inicial: (43.2551, -2.9299)
+-- Valores: puntuacion_road=3, calidad_ambiental=74, ruido=67
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.255100, -2.929900, 3, 74, 67, 'Uribarri', '2025-01-20 07:40:00+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.255150, -2.929880, 3, 74, 67, 'Uribarri', '2025-01-20 07:40:01+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.255200, -2.929860, 3, 74, 67, 'Uribarri', '2025-01-20 07:40:02+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.255250, -2.929840, 3, 74, 67, 'Uribarri', '2025-01-20 07:40:03+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.255300, -2.929820, 3, 74, 67, 'Uribarri', '2025-01-20 07:40:04+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.255300, -2.929820, 3, 74, 67, 'Uribarri', '2025-01-20 07:40:05+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.255350, -2.929800, 3, 74, 67, 'Uribarri', '2025-01-20 07:40:06+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.255400, -2.929780, 3, 74, 67, 'Uribarri', '2025-01-20 07:40:07+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.255450, -2.929760, 3, 74, 67, 'Uribarri', '2025-01-20 07:40:08+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.255500, -2.929740, 3, 74, 67, 'Uribarri', '2025-01-20 07:40:09+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.255550, -2.929720, 3, 74, 67, 'Uribarri', '2025-01-20 07:40:10+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.255600, -2.929700, 3, 74, 67, 'Uribarri', '2025-01-20 07:40:11+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.255650, -2.929680, 3, 74, 67, 'Uribarri', '2025-01-20 07:40:12+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.255700, -2.929660, 3, 74, 67, 'Uribarri', '2025-01-20 07:40:13+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.255750, -2.929640, 3, 74, 67, 'Uribarri', '2025-01-20 07:40:14+00');
+-- (i=15: parada)
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.255750, -2.929640, 3, 74, 67, 'Uribarri', '2025-01-20 07:40:15+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.255800, -2.929620, 3, 74, 67, 'Uribarri', '2025-01-20 07:40:16+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.255850, -2.929600, 3, 74, 67, 'Uribarri', '2025-01-20 07:40:17+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.255900, -2.929580, 3, 74, 67, 'Uribarri', '2025-01-20 07:40:18+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_4', 43.255950, -2.929560, 3, 74, 67, 'Uribarri', '2025-01-20 07:40:19+00');
+
+-- ************** BIKE 5 **************
+-- Ruta 1: Bike 5, Abando, 30 filas, inicio '2025-03-18 08:40:00'
+-- (Base Abando: (43.2630, -2.9350) → inicial: (43.2631, -2.9349); valores: 3,75,65)
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.263100, -2.934900, 3, 75, 65, 'Abando', '2025-03-18 08:40:00+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.263150, -2.934880, 3, 75, 65, 'Abando', '2025-03-18 08:40:01+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.263200, -2.934860, 3, 75, 65, 'Abando', '2025-03-18 08:40:02+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.263250, -2.934840, 3, 75, 65, 'Abando', '2025-03-18 08:40:03+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.263300, -2.934820, 3, 75, 65, 'Abando', '2025-03-18 08:40:04+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.263300, -2.934820, 3, 75, 65, 'Abando', '2025-03-18 08:40:05+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.263350, -2.934800, 3, 75, 65, 'Abando', '2025-03-18 08:40:06+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.263400, -2.934780, 3, 75, 65, 'Abando', '2025-03-18 08:40:07+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.263450, -2.934760, 3, 75, 65, 'Abando', '2025-03-18 08:40:08+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.263500, -2.934740, 3, 75, 65, 'Abando', '2025-03-18 08:40:09+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.263550, -2.934720, 3, 75, 65, 'Abando', '2025-03-18 08:40:10+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.263600, -2.934700, 3, 75, 65, 'Abando', '2025-03-18 08:40:11+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.263650, -2.934680, 3, 75, 65, 'Abando', '2025-03-18 08:40:12+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.263700, -2.934660, 3, 75, 65, 'Abando', '2025-03-18 08:40:13+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.263750, -2.934640, 3, 75, 65, 'Abando', '2025-03-18 08:40:14+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.263800, -2.934620, 3, 75, 65, 'Abando', '2025-03-18 08:40:15+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.263850, -2.934600, 3, 75, 65, 'Abando', '2025-03-18 08:40:16+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.263900, -2.934580, 3, 75, 65, 'Abando', '2025-03-18 08:40:17+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.263950, -2.934560, 3, 75, 65, 'Abando', '2025-03-18 08:40:18+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.264000, -2.934540, 3, 75, 65, 'Abando', '2025-03-18 08:40:19+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.264050, -2.934520, 3, 75, 65, 'Abando', '2025-03-18 08:40:20+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.264100, -2.934500, 3, 75, 65, 'Abando', '2025-03-18 08:40:21+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.264150, -2.934480, 3, 75, 65, 'Abando', '2025-03-18 08:40:22+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.264200, -2.934460, 3, 75, 65, 'Abando', '2025-03-18 08:40:23+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.264250, -2.934440, 3, 75, 65, 'Abando', '2025-03-18 08:40:24+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.264300, -2.934420, 3, 75, 65, 'Abando', '2025-03-18 08:40:25+00');
+
+-- Ruta 2: Bike 5, Basurto-Zorroza, 20 filas, inicio '2025-03-04 09:10:00'
+-- Base: (43.2530, -2.9380) → inicial: (43.2531, -2.9379); valores: 2,70,68
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.253100, -2.937900, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:10:00+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.253150, -2.937880, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:10:01+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.253200, -2.937860, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:10:02+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.253250, -2.937840, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:10:03+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.253300, -2.937820, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:10:04+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.253300, -2.937820, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:10:05+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.253350, -2.937800, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:10:06+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.253400, -2.937780, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:10:07+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.253450, -2.937760, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:10:08+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.253500, -2.937740, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:10:09+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.253550, -2.937720, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:10:10+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.253600, -2.937700, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:10:11+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.253650, -2.937680, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:10:12+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.253700, -2.937660, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:10:13+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.253750, -2.937640, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:10:14+00');
+-- (i=15: parada)
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.253750, -2.937640, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:10:15+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.253800, -2.937620, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:10:16+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.253850, -2.937600, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:10:17+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.253900, -2.937580, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:10:18+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_5', 43.253950, -2.937560, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:10:19+00');
+
+-- ************** BIKE 6 **************
+-- Ruta 1: Bike 6, Begoña, 30 filas, inicio '2025-03-18 08:50:00'
+-- Base: (43.2850, -2.9490) → inicial: (43.2851, -2.9489); valores: 4,80,60
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.285100, -2.948900, 4, 80, 60, 'Begoña', '2025-03-18 08:50:00+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.285150, -2.948880, 4, 80, 60, 'Begoña', '2025-03-18 08:50:01+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.285200, -2.948860, 4, 80, 60, 'Begoña', '2025-03-18 08:50:02+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.285250, -2.948840, 4, 80, 60, 'Begoña', '2025-03-18 08:50:03+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.285300, -2.948820, 4, 80, 60, 'Begoña', '2025-03-18 08:50:04+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.285300, -2.948820, 4, 80, 60, 'Begoña', '2025-03-18 08:50:05+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.285350, -2.948800, 4, 80, 60, 'Begoña', '2025-03-18 08:50:06+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.285400, -2.948780, 4, 80, 60, 'Begoña', '2025-03-18 08:50:07+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.285450, -2.948760, 4, 80, 60, 'Begoña', '2025-03-18 08:50:08+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.285500, -2.948740, 4, 80, 60, 'Begoña', '2025-03-18 08:50:09+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.285550, -2.948720, 4, 80, 60, 'Begoña', '2025-03-18 08:50:10+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.285600, -2.948700, 4, 80, 60, 'Begoña', '2025-03-18 08:50:11+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.285650, -2.948680, 4, 80, 60, 'Begoña', '2025-03-18 08:50:12+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.285700, -2.948660, 4, 80, 60, 'Begoña', '2025-03-18 08:50:13+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.285750, -2.948640, 4, 80, 60, 'Begoña', '2025-03-18 08:50:14+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.285800, -2.948620, 4, 80, 60, 'Begoña', '2025-03-18 08:50:15+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.285850, -2.948600, 4, 80, 60, 'Begoña', '2025-03-18 08:50:16+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.285900, -2.948580, 4, 80, 60, 'Begoña', '2025-03-18 08:50:17+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.285950, -2.948560, 4, 80, 60, 'Begoña', '2025-03-18 08:50:18+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.286000, -2.948540, 4, 80, 60, 'Begoña', '2025-03-18 08:50:19+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.286050, -2.948520, 4, 80, 60, 'Begoña', '2025-03-18 08:50:20+00');
+
+-- Ruta 2: Bike 6, Deusto, 20 filas, inicio '2025-01-20 07:50:00'
+-- Base: (43.2520, -2.9600) → inicial: (43.2521, -2.9599); valores: 2,65,70
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.252100, -2.959900, 2, 65, 70, 'Deusto', '2025-01-20 07:50:00+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.252150, -2.959880, 2, 65, 70, 'Deusto', '2025-01-20 07:50:01+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.252200, -2.959860, 2, 65, 70, 'Deusto', '2025-01-20 07:50:02+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.252250, -2.959840, 2, 65, 70, 'Deusto', '2025-01-20 07:50:03+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.252300, -2.959820, 2, 65, 70, 'Deusto', '2025-01-20 07:50:04+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.252300, -2.959820, 2, 65, 70, 'Deusto', '2025-01-20 07:50:05+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.252350, -2.959800, 2, 65, 70, 'Deusto', '2025-01-20 07:50:06+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.252400, -2.959780, 2, 65, 70, 'Deusto', '2025-01-20 07:50:07+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.252450, -2.959760, 2, 65, 70, 'Deusto', '2025-01-20 07:50:08+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.252500, -2.959740, 2, 65, 70, 'Deusto', '2025-01-20 07:50:09+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.252550, -2.959720, 2, 65, 70, 'Deusto', '2025-01-20 07:50:10+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.252600, -2.959700, 2, 65, 70, 'Deusto', '2025-01-20 07:50:11+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.252650, -2.959680, 2, 65, 70, 'Deusto', '2025-01-20 07:50:12+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.252700, -2.959660, 2, 65, 70, 'Deusto', '2025-01-20 07:50:13+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.252750, -2.959640, 2, 65, 70, 'Deusto', '2025-01-20 07:50:14+00');
+-- (i=15: parada)
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.252750, -2.959640, 2, 65, 70, 'Deusto', '2025-01-20 07:50:15+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.252800, -2.959620, 2, 65, 70, 'Deusto', '2025-01-20 07:50:16+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.252850, -2.959600, 2, 65, 70, 'Deusto', '2025-01-20 07:50:17+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.252900, -2.959580, 2, 65, 70, 'Deusto', '2025-01-20 07:50:18+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_6', 43.252950, -2.959560, 2, 65, 70, 'Deusto', '2025-01-20 07:50:19+00');
+
+-- ************** BIKE 7 **************
+-- Ruta 1: Bike 7, Ibaiondo, 30 filas, inicio '2025-03-18 09:00:00'
+-- Base: (43.2620, -2.9320) → inicial: (43.2621, -2.9319); valores: 3,75,66
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.262100, -2.931900, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:00+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.262150, -2.931880, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:01+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.262200, -2.931860, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:02+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.262250, -2.931840, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:03+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.262300, -2.931820, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:04+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.262300, -2.931820, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:05+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.262350, -2.931800, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:06+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.262400, -2.931780, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:07+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.262450, -2.931760, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:08+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.262500, -2.931740, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:09+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.262550, -2.931720, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:10+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.262600, -2.931700, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:11+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.262650, -2.931680, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:12+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.262700, -2.931660, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:13+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.262750, -2.931640, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:14+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.262800, -2.931620, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:15+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.262850, -2.931600, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:16+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.262900, -2.931580, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:17+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.262950, -2.931560, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:18+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.263000, -2.931540, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:19+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.263050, -2.931520, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:20+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.263100, -2.931500, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:21+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.263150, -2.931480, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:22+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.263200, -2.931460, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:23+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.263250, -2.931440, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:24+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.263300, -2.931420, 3, 75, 66, 'Ibaiondo', '2025-03-18 09:00:25+00');
+
+-- Ruta 2: Bike 7, Otxarkoaga-Txurdinaga, 20 filas, inicio '2025-03-04 09:15:00'
+-- Base: (43.3000, -2.9700) → inicial: (43.3001, -2.9699); valores: 1,60,72
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.300100, -2.969900, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:15:00+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.300150, -2.969880, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:15:01+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.300200, -2.969860, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:15:02+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.300250, -2.969840, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:15:03+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.300300, -2.969820, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:15:04+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.300300, -2.969820, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:15:05+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.300350, -2.969800, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:15:06+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.300400, -2.969780, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:15:07+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.300450, -2.969760, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:15:08+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.300500, -2.969740, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:15:09+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.300550, -2.969720, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:15:10+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.300600, -2.969700, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:15:11+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.300650, -2.969680, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:15:12+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.300700, -2.969660, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:15:13+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.300750, -2.969640, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:15:14+00');
+-- (i=15: parada)
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.300750, -2.969640, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:15:15+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.300800, -2.969620, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:15:16+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.300850, -2.969600, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:15:17+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.300900, -2.969580, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:15:18+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_7', 43.300950, -2.969560, 1, 60, 72, 'Otxarkoaga-Txurdinaga', '2025-03-04 09:15:19+00');
+
+-- ************** BIKE 8 **************
+-- Ruta 1: Bike 8, Rekalde, 30 filas, inicio '2025-03-18 09:10:00'
+-- Base: (43.2650, -2.9200) → inicial: (43.2651, -2.9199); valores: 3,78,64
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.265100, -2.919900, 3, 78, 64, 'Rekalde', '2025-03-18 09:10:00+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.265150, -2.919880, 3, 78, 64, 'Rekalde', '2025-03-18 09:10:01+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.265200, -2.919860, 3, 78, 64, 'Rekalde', '2025-03-18 09:10:02+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.265250, -2.919840, 3, 78, 64, 'Rekalde', '2025-03-18 09:10:03+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.265300, -2.919820, 3, 78, 64, 'Rekalde', '2025-03-18 09:10:04+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.265300, -2.919820, 3, 78, 64, 'Rekalde', '2025-03-18 09:10:05+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.265350, -2.919800, 3, 78, 64, 'Rekalde', '2025-03-18 09:10:06+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.265400, -2.919780, 3, 78, 64, 'Rekalde', '2025-03-18 09:10:07+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.265450, -2.919760, 3, 78, 64, 'Rekalde', '2025-03-18 09:10:08+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.265500, -2.919740, 3, 78, 64, 'Rekalde', '2025-03-18 09:10:09+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.265550, -2.919720, 3, 78, 64, 'Rekalde', '2025-03-18 09:10:10+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.265600, -2.919700, 3, 78, 64, 'Rekalde', '2025-03-18 09:10:11+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.265650, -2.919680, 3, 78, 64, 'Rekalde', '2025-03-18 09:10:12+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.265700, -2.919660, 3, 78, 64, 'Rekalde', '2025-03-18 09:10:13+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.265750, -2.919640, 3, 78, 64, 'Rekalde', '2025-03-18 09:10:14+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.265800, -2.919620, 3, 78, 64, 'Rekalde', '2025-03-18 09:10:15+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.265850, -2.919600, 3, 78, 64, 'Rekalde', '2025-03-18 09:10:16+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.265900, -2.919580, 3, 78, 64, 'Rekalde', '2025-03-18 09:10:17+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.265950, -2.919560, 3, 78, 64, 'Rekalde', '2025-03-18 09:10:18+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.266000, -2.919540, 3, 78, 64, 'Rekalde', '2025-03-18 09:10:19+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.266050, -2.919520, 3, 78, 64, 'Rekalde', '2025-03-18 09:10:20+00');
+
+-- Ruta 2: Bike 8, Uribarri, 20 filas, inicio '2025-01-20 08:00:00'
+-- Base: (43.2550, -2.9300) → inicial: (43.2551, -2.9299); valores: 3,74,67
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.255100, -2.929900, 3, 74, 67, 'Uribarri', '2025-01-20 08:00:00+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.255150, -2.929880, 3, 74, 67, 'Uribarri', '2025-01-20 08:00:01+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.255200, -2.929860, 3, 74, 67, 'Uribarri', '2025-01-20 08:00:02+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.255250, -2.929840, 3, 74, 67, 'Uribarri', '2025-01-20 08:00:03+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.255300, -2.929820, 3, 74, 67, 'Uribarri', '2025-01-20 08:00:04+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.255300, -2.929820, 3, 74, 67, 'Uribarri', '2025-01-20 08:00:05+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.255350, -2.929800, 3, 74, 67, 'Uribarri', '2025-01-20 08:00:06+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.255400, -2.929780, 3, 74, 67, 'Uribarri', '2025-01-20 08:00:07+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.255450, -2.929760, 3, 74, 67, 'Uribarri', '2025-01-20 08:00:08+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.255500, -2.929740, 3, 74, 67, 'Uribarri', '2025-01-20 08:00:09+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.255550, -2.929720, 3, 74, 67, 'Uribarri', '2025-01-20 08:00:10+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.255600, -2.929700, 3, 74, 67, 'Uribarri', '2025-01-20 08:00:11+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.255650, -2.929680, 3, 74, 67, 'Uribarri', '2025-01-20 08:00:12+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.255700, -2.929660, 3, 74, 67, 'Uribarri', '2025-01-20 08:00:13+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.255750, -2.929640, 3, 74, 67, 'Uribarri', '2025-01-20 08:00:14+00');
+-- (i=15: parada)
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.255750, -2.929640, 3, 74, 67, 'Uribarri', '2025-01-20 08:00:15+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.255800, -2.929620, 3, 74, 67, 'Uribarri', '2025-01-20 08:00:16+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.255850, -2.929600, 3, 74, 67, 'Uribarri', '2025-01-20 08:00:17+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.255900, -2.929580, 3, 74, 67, 'Uribarri', '2025-01-20 08:00:18+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_8', 43.255950, -2.929560, 3, 74, 67, 'Uribarri', '2025-01-20 08:00:19+00');
+
+-- ************** BIKE 9 **************
+-- Ruta 1: Bike 9, Abando, 30 filas, inicio '2025-03-18 09:20:00'
+-- Base: (43.2630, -2.9350) → inicial: (43.2631, -2.9349); valores: 3,75,65
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.263100, -2.934900, 3, 75, 65, 'Abando', '2025-03-18 09:20:00+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.263150, -2.934880, 3, 75, 65, 'Abando', '2025-03-18 09:20:01+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.263200, -2.934860, 3, 75, 65, 'Abando', '2025-03-18 09:20:02+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.263250, -2.934840, 3, 75, 65, 'Abando', '2025-03-18 09:20:03+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.263300, -2.934820, 3, 75, 65, 'Abando', '2025-03-18 09:20:04+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.263300, -2.934820, 3, 75, 65, 'Abando', '2025-03-18 09:20:05+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.263350, -2.934800, 3, 75, 65, 'Abando', '2025-03-18 09:20:06+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.263400, -2.934780, 3, 75, 65, 'Abando', '2025-03-18 09:20:07+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.263450, -2.934760, 3, 75, 65, 'Abando', '2025-03-18 09:20:08+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.263500, -2.934740, 3, 75, 65, 'Abando', '2025-03-18 09:20:09+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.263550, -2.934720, 3, 75, 65, 'Abando', '2025-03-18 09:20:10+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.263600, -2.934700, 3, 75, 65, 'Abando', '2025-03-18 09:20:11+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.263650, -2.934680, 3, 75, 65, 'Abando', '2025-03-18 09:20:12+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.263700, -2.934660, 3, 75, 65, 'Abando', '2025-03-18 09:20:13+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.263750, -2.934640, 3, 75, 65, 'Abando', '2025-03-18 09:20:14+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.263800, -2.934620, 3, 75, 65, 'Abando', '2025-03-18 09:20:15+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.263850, -2.934600, 3, 75, 65, 'Abando', '2025-03-18 09:20:16+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.263900, -2.934580, 3, 75, 65, 'Abando', '2025-03-18 09:20:17+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.263950, -2.934560, 3, 75, 65, 'Abando', '2025-03-18 09:20:18+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.264000, -2.934540, 3, 75, 65, 'Abando', '2025-03-18 09:20:19+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.264050, -2.934520, 3, 75, 65, 'Abando', '2025-03-18 09:20:20+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.264100, -2.934500, 3, 75, 65, 'Abando', '2025-03-18 09:20:21+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.264150, -2.934480, 3, 75, 65, 'Abando', '2025-03-18 09:20:22+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.264200, -2.934460, 3, 75, 65, 'Abando', '2025-03-18 09:20:23+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.264250, -2.934440, 3, 75, 65, 'Abando', '2025-03-18 09:20:24+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.264300, -2.934420, 3, 75, 65, 'Abando', '2025-03-18 09:20:25+00');
+
+-- Ruta 2: Bike 9, Basurto-Zorroza, 20 filas, inicio '2025-03-04 09:20:00'
+-- Base: (43.2530, -2.9380) → inicial: (43.2531, -2.9379); valores: 2,70,68
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.253100, -2.937900, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:20:00+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.253150, -2.937880, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:20:01+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.253200, -2.937860, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:20:02+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.253250, -2.937840, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:20:03+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.253300, -2.937820, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:20:04+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.253300, -2.937820, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:20:05+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.253350, -2.937800, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:20:06+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.253400, -2.937780, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:20:07+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.253450, -2.937760, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:20:08+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.253500, -2.937740, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:20:09+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.253550, -2.937720, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:20:10+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.253600, -2.937700, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:20:11+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.253650, -2.937680, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:20:12+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.253700, -2.937660, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:20:13+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.253750, -2.937640, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:20:14+00');
+-- (i=15: parada)
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.253750, -2.937640, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:20:15+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.253800, -2.937620, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:20:16+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.253850, -2.937600, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:20:17+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.253900, -2.937580, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:20:18+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_9', 43.253950, -2.937560, 2, 70, 68, 'Basurto-Zorroza', '2025-03-04 09:20:19+00');
+
+-- ************** BIKE 10 **************
+-- Ruta 1: Bike 10, Begoña, 30 filas, inicio '2025-03-18 09:30:00'
+-- Base: (43.2850, -2.9490) → inicial: (43.2851, -2.9489); valores: 4,80,60
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.285100, -2.948900, 4, 80, 60, 'Begoña', '2025-03-18 09:30:00+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.285150, -2.948880, 4, 80, 60, 'Begoña', '2025-03-18 09:30:01+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.285200, -2.948860, 4, 80, 60, 'Begoña', '2025-03-18 09:30:02+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.285250, -2.948840, 4, 80, 60, 'Begoña', '2025-03-18 09:30:03+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.285300, -2.948820, 4, 80, 60, 'Begoña', '2025-03-18 09:30:04+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.285300, -2.948820, 4, 80, 60, 'Begoña', '2025-03-18 09:30:05+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.285350, -2.948800, 4, 80, 60, 'Begoña', '2025-03-18 09:30:06+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.285400, -2.948780, 4, 80, 60, 'Begoña', '2025-03-18 09:30:07+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.285450, -2.948760, 4, 80, 60, 'Begoña', '2025-03-18 09:30:08+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.285500, -2.948740, 4, 80, 60, 'Begoña', '2025-03-18 09:30:09+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.285550, -2.948720, 4, 80, 60, 'Begoña', '2025-03-18 09:30:10+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.285600, -2.948700, 4, 80, 60, 'Begoña', '2025-03-18 09:30:11+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.285650, -2.948680, 4, 80, 60, 'Begoña', '2025-03-18 09:30:12+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.285700, -2.948660, 4, 80, 60, 'Begoña', '2025-03-18 09:30:13+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.285750, -2.948640, 4, 80, 60, 'Begoña', '2025-03-18 09:30:14+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.285800, -2.948620, 4, 80, 60, 'Begoña', '2025-03-18 09:30:15+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.285850, -2.948600, 4, 80, 60, 'Begoña', '2025-03-18 09:30:16+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.285900, -2.948580, 4, 80, 60, 'Begoña', '2025-03-18 09:30:17+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.285950, -2.948560, 4, 80, 60, 'Begoña', '2025-03-18 09:30:18+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.286000, -2.948540, 4, 80, 60, 'Begoña', '2025-03-18 09:30:19+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.286050, -2.948520, 4, 80, 60, 'Begoña', '2025-03-18 09:30:20+00');
+
+-- Ruta 2: Bike 10, Deusto, 20 filas, inicio '2025-01-20 08:10:00'
+-- Base: (43.2520, -2.9600) → inicial: (43.2521, -2.9599); valores: 2,65,70
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.252100, -2.959900, 2, 65, 70, 'Deusto', '2025-01-20 08:10:00+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.252150, -2.959880, 2, 65, 70, 'Deusto', '2025-01-20 08:10:01+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.252200, -2.959860, 2, 65, 70, 'Deusto', '2025-01-20 08:10:02+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.252250, -2.959840, 2, 65, 70, 'Deusto', '2025-01-20 08:10:03+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.252300, -2.959820, 2, 65, 70, 'Deusto', '2025-01-20 08:10:04+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.252300, -2.959820, 2, 65, 70, 'Deusto', '2025-01-20 08:10:05+00'); -- parada
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.252350, -2.959800, 2, 65, 70, 'Deusto', '2025-01-20 08:10:06+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.252400, -2.959780, 2, 65, 70, 'Deusto', '2025-01-20 08:10:07+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.252450, -2.959760, 2, 65, 70, 'Deusto', '2025-01-20 08:10:08+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.252500, -2.959740, 2, 65, 70, 'Deusto', '2025-01-20 08:10:09+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.252550, -2.959720, 2, 65, 70, 'Deusto', '2025-01-20 08:10:10+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.252600, -2.959700, 2, 65, 70, 'Deusto', '2025-01-20 08:10:11+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.252650, -2.959680, 2, 65, 70, 'Deusto', '2025-01-20 08:10:12+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.252700, -2.959660, 2, 65, 70, 'Deusto', '2025-01-20 08:10:13+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.252750, -2.959640, 2, 65, 70, 'Deusto', '2025-01-20 08:10:14+00');
+-- (i=15: parada)
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.252750, -2.959640, 2, 65, 70, 'Deusto', '2025-01-20 08:10:15+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.252800, -2.959620, 2, 65, 70, 'Deusto', '2025-01-20 08:10:16+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.252850, -2.959600, 2, 65, 70, 'Deusto', '2025-01-20 08:10:17+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.252900, -2.959580, 2, 65, 70, 'Deusto', '2025-01-20 08:10:18+00');
+INSERT INTO bike_data (bike_id, latitud, longitud, puntuacion_road, calidad_ambiental, ruido, barrio, fecha) VALUES ('bike_10', 43.252950, -2.959560, 2, 65, 70, 'Deusto', '2025-01-20 08:10:19+00');
+
+

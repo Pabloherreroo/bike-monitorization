@@ -8,12 +8,11 @@ CREATE EXTENSION IF NOT EXISTS timescaledb;
 CREATE TABLE bikes (
     id SERIAL PRIMARY KEY,
     bike_id TEXT UNIQUE NOT NULL,
-    estado VARCHAR(20) CHECK (estado IN ('en funcionamiento', 'parada')) NOT NULL, -- podria ser 0 o 1
-    fecha_registro TIMESTAMPTZ DEFAULT NOW() -- esto no se si me convence
+    estado VARCHAR(20) CHECK (estado IN ('en funcionamiento', 'parada')) NOT NULL,
+    fecha_registro TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE bike_data (
-    id SERIAL PRIMARY KEY,
     bike_id TEXT NOT NULL,  
     latitud DOUBLE PRECISION NOT NULL,
     longitud DOUBLE PRECISION NOT NULL,
@@ -22,10 +21,11 @@ CREATE TABLE bike_data (
     ruido INT CHECK (ruido >= 0 AND ruido <= 120) NOT NULL,
     barrio TEXT,
     fecha TIMESTAMPTZ NOT NULL,
-    CONSTRAINT fk_bike_id FOREIGN KEY (bike_id) REFERENCES bikes(bike_id),
-    CONSTRAINT bike_data_unique UNIQUE (bike_id, fecha)
+    PRIMARY KEY (bike_id, fecha),  -- Clave primaria compuesta por bike_id y fecha
+    CONSTRAINT fk_bike_id FOREIGN KEY (bike_id) REFERENCES bikes(bike_id)
 );
 
--- 'fecha' como partición temporal, hypertable para datos de sensores
+-- Crear la 'hypertable' para 'bike_data' con partición en 'fecha'
 SELECT create_hypertable('bike_data', 'fecha');
+
 

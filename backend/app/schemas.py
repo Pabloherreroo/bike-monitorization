@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 
-# Modelos pydantic para validacion de datos
+# Modelos pydantic para validación de datos
 class BikeBase(BaseModel):
     bike_id: str
     estado: str
@@ -30,7 +30,8 @@ class BikeDataCreate(BikeDataBase):
     pass
 
 class BikeData(BikeDataBase):
-    id: int
+    bike_id: str
+    fecha: datetime
 
     class Config:
         orm_mode = True

@@ -11,15 +11,14 @@ class Bike(Base):
 
 class BikeData(Base):
     __tablename__ = "bike_data"
-    id = Column(Integer, primary_key=True, index=True)
-    bike_id = Column(String, ForeignKey("bikes.bike_id"), nullable=False)
+    bike_id = Column(String, ForeignKey("bikes.bike_id"), primary_key=True, nullable=False)
+    fecha = Column(TIMESTAMP(timezone=True), primary_key=True, nullable=False)
     latitud = Column(Float, nullable=False)
     longitud = Column(Float, nullable=False)
     puntuacion_road = Column(Integer, nullable=False)
     calidad_ambiental = Column(Integer, nullable=False)
     ruido = Column(Integer, nullable=False)
     barrio = Column(String)
-    fecha = Column(TIMESTAMP(timezone=True), nullable=False)
 
     __table_args__ = (
         CheckConstraint("puntuacion_road >= 1 AND puntuacion_road <= 4", name="check_puntuacion_road"),
