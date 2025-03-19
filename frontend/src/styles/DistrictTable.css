@@ -81,7 +81,8 @@
 .district-table th {
 	padding: 15px 15px;
 	text-align: left;
-	font-weight: 600;
+	font-weight: 630;
+	font-size: 17px;
 	color: var(--dark-color);
 	border-bottom: 2px solid var(--light-gray);
 }
@@ -125,7 +126,7 @@ background-color: rgba(0, 0, 0, 0.02);
 	padding: 4px 8px;
 	border-radius: 4px;
 	color: white;
-	font-weight: 500;
+	font-weight: 600;
 	text-align: center;
 	min-width: 40px;
 }
@@ -148,7 +149,7 @@ background-color: rgba(0, 0, 0, 0.02);
 }
 
 .total-score {
-	font-weight: 600;
+	font-weight: 650;
 	color: var(--dark-color);
 }
 
@@ -206,9 +207,10 @@ background-color: rgba(0, 0, 0, 0.02);
 	padding: 2px 5px;
 	background-color: var(--light-gray);
 	color: var(--dark-gray);
-	border-radius: 3px;
+	border-radius: 5px;
 	cursor: pointer;
 	transition: background-color 0.2s;
+	margin-left: 5px;
 }
 
 .fix-weight-btn.fixed {
