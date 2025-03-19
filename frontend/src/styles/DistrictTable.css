@@ -1,0 +1,229 @@
+.district-table-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(0, 0, 0, 0.5);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	z-index: 1000;
+}
+  
+.district-table-container {
+	background-color: white;
+	border-radius: 10px;
+	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+	width: 90%;
+	max-width: 1300px;
+	max-height: 90vh;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+  
+.district-table-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 15px 25px;
+	background-color: var(--soft-color);
+	color: white;
+	border-top-left-radius: 10px;
+	border-top-right-radius: 10px;
+}
+  
+.district-table-header h2 {
+	margin: 0;
+	font-size: 20px;
+}
+  
+.close-button {
+	background: none;
+	border: none;
+	color: white;
+	font-size: 30px;
+	cursor: pointer;
+	padding: 0;
+	width: 30px;
+	height: 30px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	transition: background-color 0.2s;
+}
+  
+.close-button:hover {
+	background-color: rgba(255, 255, 255, 0.2);
+}
+
+.district-table-content {
+	padding: 0 0 20px 0;
+	overflow-y: auto;
+	max-height: calc(90vh - 60px);
+}
+
+.district-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.district-table thead {
+	position: sticky;
+	top: 0;
+	background-color: white;
+	z-index: 10;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.district-table th {
+	padding: 15px 15px;
+	text-align: left;
+	font-weight: 600;
+	color: var(--dark-color);
+	border-bottom: 2px solid var(--light-gray);
+}
+
+.district-table td {
+	padding: 12px 15px;
+	border-bottom: 1px solid var(--light-gray);
+}
+
+.district-table th:first-child,
+.district-table td:first-child {
+	padding-left: 30px;
+}
+
+/* Anchuras fijas */
+.district-table th:nth-child(1) {
+	width: 21%; /* Zona */
+}
+
+.district-table th:nth-child(2),
+.district-table th:nth-child(3),
+.district-table th:nth-child(4) {
+	width: 14%; /* Vías, Aire, Ruido */
+}
+
+.district-table th:nth-child(5) {
+	width: 20%; /* Últimos datos */
+}
+
+.district-table th:nth-child(6) {
+	width: 17%; /* Puntuación total */
+}
+
+.district-table tbody tr:hover {
+background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Score carreteras */
+.score-indicator {
+	display: inline-block;
+	padding: 4px 8px;
+	border-radius: 4px;
+	color: white;
+	font-weight: 500;
+	text-align: center;
+	min-width: 40px;
+}
+
+.score-green {
+	background-color: #4caf50;
+}
+
+.score-yellow {
+	background-color: #ffeb3b;
+	color: #333;
+}
+
+.score-orange {
+	background-color: #ff9800;
+}
+
+.score-red {
+	background-color: #f44336;
+}
+
+.total-score {
+	font-weight: 600;
+	color: var(--dark-color);
+}
+
+/* Ordenar por columna */
+.sort-header {
+	cursor: pointer;
+	position: relative;
+	user-select: none;
+	display: flex;
+	align-items: center;
+}
+
+.sort-header:hover {
+	background-color: rgba(0, 0, 0, 0.02);
+}
+
+.sort-indicator {
+	display: inline-block;
+	margin-left: 10px;
+	font-size: 12px;
+	width: 12px;
+	text-align: center;
+}
+
+/* Pesos de cada columna */
+.weight-control {
+	display: flex;
+	align-items: center;
+	margin-top: 5px;
+	gap: 5px;
+}
+
+.weight-input {
+	display: flex;
+	align-items: center;
+}
+
+.weight-input input {
+	width: 45px;
+	padding: 4px;
+	margin: 0;
+	border: 1px solid var(--light-gray);
+	border-radius: 4px;
+	font-size: 12px;
+	text-align: center;
+}
+
+.weight-input span {
+	margin-left: 2px;
+	font-size: 12px;
+}
+
+.fix-weight-btn {
+	font-size: 10px;
+	padding: 2px 5px;
+	background-color: var(--light-gray);
+	color: var(--dark-gray);
+	border-radius: 3px;
+	cursor: pointer;
+	transition: background-color 0.2s;
+}
+
+.fix-weight-btn.fixed {
+	background-color: var(--soft-color);
+	color: white;
+}
+
+.fix-weight-btn:hover {
+	background-color: var(--soft-color);
+	color: white;
+}
+
+.no-data {
+	text-align: center;
+	padding: 20px;
+	color: var(--dark-gray);
+	font-style: italic;
+}
