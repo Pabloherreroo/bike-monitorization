@@ -69,7 +69,7 @@ input {
   gap: clamp(10px, 5vw, 40px);
   justify-content: center;
   align-items: center;
-  row-gap: 80px;
+  row-gap: 40px;
 }
 
 .dashboard-card {
@@ -361,3 +361,118 @@ input {
   z-index: 10;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
+
+/* Estado de bicicletas */
+.estado-card {
+  padding: 15px;
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.bikes-list-container {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: auto;
+  scrollbar-color: var(--light-gray) transparent;
+  padding-right: 5px;
+}
+
+.bikes-list-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.bikes-list-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bikes-list-container::-webkit-scrollbar-thumb {
+  background-color: var(--light-gray);
+  border-radius: 10px;
+}
+
+.bike-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  transition: background-color 0.2s;
+}
+
+.bike-row:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.bike-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin-right: 20px;
+  flex-shrink: 0;
+}
+
+.test-bike-icon {
+  color: #f9a825;
+}
+
+.normal-bike-icon {
+  color: #4caf50;
+}
+
+.bike-name {
+  font-weight: 500;
+  flex: 1;
+  font-size: 14px;
+}
+
+.bike-status {
+  display: flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 10px;
+}
+
+.status-active {
+  background-color: #e8f5e9;
+  color: #4caf50;
+}
+
+.status-inactive {
+  background-color: var(--light-gray);
+  color: var(--dark-gray);
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: 8px;
+}
+
+.indicator-active {
+  background-color: #4caf50;
+}
+
+.indicator-inactive {
+  background-color: #9e1a1a;
+}
+
+.no-bikes-message {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  color: var(--dark-gray);
+  font-style: italic;
+  opacity: 0.7;
+}
+
+
