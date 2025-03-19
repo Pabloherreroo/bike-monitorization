@@ -51,7 +51,7 @@ function App() {
           path="/dashboard" 
           element={
             isAuthenticated 
-              ? <MainLayout bikeData={bikeData} ><Dashboard bikeData={bikeData} /></MainLayout> 
+              ? <MainLayout bikeData={bikeData} ><Dashboard bikeData={bikeData} bikes={bikes} /></MainLayout> 
               : <Navigate to="/login" replace />
           } 
         />

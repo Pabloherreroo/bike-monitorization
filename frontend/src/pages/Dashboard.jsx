@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import '../styles/Dashboard.css';
 
-const Dashboard = ({ bikeData }) => {
+const Dashboard = ({ bikeData, bikes }) => {
     
     const processedData = useMemo(() => {
         // Verificamos si hay datos disponibles y si no predeterminados
