@@ -1,7 +1,13 @@
 DROP DATABASE IF EXISTS bicicleta_data;
-CREATE DATABASE bicicleta_data;
+CREATE DATABASE bicicleta_data 
+    WITH OWNER = postgres
+    ENCODING = 'UTF8'
+    LC_COLLATE = 'es_ES.UTF-8'
+    LC_CTYPE = 'es_ES.UTF-8'
+    TEMPLATE = template0;
 
 \c bicicleta_data;
+SET client_encoding TO 'UTF8';
 
 CREATE EXTENSION IF NOT EXISTS timescaledb;
 

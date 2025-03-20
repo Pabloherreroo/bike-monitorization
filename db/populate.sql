@@ -6,6 +6,7 @@
 
 DELETE FROM bike_data;
 DELETE FROM bikes;
+SET client_encoding TO 'UTF8';
 
 INSERT INTO bikes (bike_id, estado) VALUES ('BP1', 'parada');
 INSERT INTO bikes (bike_id, estado) VALUES ('BP2', 'parada');

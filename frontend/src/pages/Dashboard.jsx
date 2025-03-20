@@ -18,9 +18,9 @@ const Dashboard = ({ bikeData, bikes }) => {
             };
         }
 
-        // Solo ultimos 2 días
+        // Solo ultimos 15 días
         const dosdiasAtras = new Date();
-        dosdiasAtras.setDate(dosdiasAtras.getDate() - 2);
+        dosdiasAtras.setDate(dosdiasAtras.getDate() - 15);
         
         const datosFiltrados = bikeData.filter(dato => {
             const fechaDato = new Date(dato.fecha);
@@ -116,7 +116,7 @@ const Dashboard = ({ bikeData, bikes }) => {
     };
 
     const isBikeTest = (bikeId) => {
-        return /^BP\d+$/.test(bikeId)
+        return /^BP\d+$/.test(bikeId) // Busca que empiece por BP y el resto sean solo numeros
     }
 
     return (
@@ -140,34 +140,40 @@ const Dashboard = ({ bikeData, bikes }) => {
                                 <div className="city-score">{processedData.airValueBilbao} %</div>
                             </div>
                         </div>
-                        <div className="air-quality-divider"></div>
-                        <div className="air-quality-right">
-                            {/* Establezco los colores correctos para los datos de arriba */}
-                            <div className="air-quality-rankings top-rankings">
-                                <h4>Lugares menos contaminados</h4>
-                                {processedData.bestAirQuality.map((item, index) => (
-                                    <div key={index} className="ranking-item">
-                                        <span className="ranking-name">{item.name}</span>
-                                        <div className="ranking-score">
-                                            <span>{item.value}</span>
-                                            <div className={`color-indicator ${getAirColorClass(item.value)}`}></div>
-                                        </div>
+                        {bikeData && bikeData.length > 0 ? (
+                            <>
+                                <div className="air-quality-divider"></div>
+                                <div className="air-quality-right">
+                                    {/* Establezco los colores correctos para los datos de arriba */}
+                                    <div className="air-quality-rankings top-rankings">
+                                        <h4>Lugares menos contaminados</h4>
+                                        {processedData.bestAirQuality.map((item, index) => (
+                                            <div key={index} className="ranking-item">
+                                                <span className="ranking-name">{item.name}</span>
+                                                <div className="ranking-score">
+                                                    <span>{item.value}</span>
+                                                    <div className={`color-indicator ${getAirColorClass(item.value)}`}></div>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
-                            <div className="air-quality-rankings bottom-rankings">
-                                <h4>Lugares más contaminados</h4>
-                                {processedData.worstAirQuality.map((item, index) => (
-                                    <div key={index} className="ranking-item">
-                                        <span className="ranking-name">{item.name}</span>
-                                        <div className="ranking-score">
-                                            <span>{item.value}</span>
-                                            <div className={`color-indicator ${getAirColorClass(item.value)}`}></div>
-                                        </div>
+                                    <div className="air-quality-rankings bottom-rankings">
+                                        <h4>Lugares más contaminados</h4>
+                                        {processedData.worstAirQuality.map((item, index) => (
+                                            <div key={index} className="ranking-item">
+                                                <span className="ranking-name">{item.name}</span>
+                                                <div className="ranking-score">
+                                                    <span>{item.value}</span>
+                                                    <div className={`color-indicator ${getAirColorClass(item.value)}`}></div>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
-                        </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="no-bikes-message"></div>
+                        )}
                     </div>
                 </div>
                 <div className="dashboard-card-container">
@@ -194,33 +200,39 @@ const Dashboard = ({ bikeData, bikes }) => {
                                 <div className="city-score">{processedData.noiseValueBilbao} dB</div>
                             </div>
                         </div>
-                        <div className="noise-divider"></div>
-                        <div className="noise-right">
-                            <div className="noise-rankings top-rankings">
-                                <h4>Zonas más silenciosas</h4>
-                                {processedData.quietestAreas.map((item, index) => (
-                                    <div key={index} className="ranking-item">
-                                        <span className="ranking-name">{item.name}</span>
-                                        <div className="ranking-score">
-                                            <span>{item.value}</span>
-                                            <div className={`color-indicator ${getNoiseColorClass(item.value)}`}></div>
-                                        </div>
+                        {bikeData && bikeData.length > 0 ? (
+                            <>
+                                <div className="noise-divider"></div>
+                                <div className="noise-right">
+                                    <div className="noise-rankings top-rankings">
+                                        <h4>Zonas más silenciosas</h4>
+                                        {processedData.quietestAreas.map((item, index) => (
+                                            <div key={index} className="ranking-item">
+                                                <span className="ranking-name">{item.name}</span>
+                                                <div className="ranking-score">
+                                                    <span>{item.value}</span>
+                                                    <div className={`color-indicator ${getNoiseColorClass(item.value)}`}></div>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
-                            <div className="noise-rankings bottom-rankings">
-                                <h4>Zonas más ruidosas</h4>
-                                {processedData.noisestAreas.map((item, index) => (
-                                    <div key={index} className="ranking-item">
-                                        <span className="ranking-name">{item.name}</span>
-                                        <div className="ranking-score">
-                                            <span>{item.value}</span>
-                                            <div className={`color-indicator ${getNoiseColorClass(item.value)}`}></div>
-                                        </div>
+                                    <div className="noise-rankings bottom-rankings">
+                                        <h4>Zonas más ruidosas</h4>
+                                        {processedData.noisestAreas.map((item, index) => (
+                                            <div key={index} className="ranking-item">
+                                                <span className="ranking-name">{item.name}</span>
+                                                <div className="ranking-score">
+                                                    <span>{item.value}</span>
+                                                    <div className={`color-indicator ${getNoiseColorClass(item.value)}`}></div>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
-                        </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="no-bikes-message"></div>
+                        )}
                     </div>
                 </div>
                 <div className="dashboard-card-container">

@@ -15,6 +15,7 @@ class Bike(BikeBase):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 class BikeDataBase(BaseModel):
     bike_id: str
@@ -23,7 +24,7 @@ class BikeDataBase(BaseModel):
     puntuacion_road: int
     calidad_ambiental: int
     ruido: int
-    barrio: str = None
+    barrio: str
     fecha: datetime
 
 class BikeDataCreate(BikeDataBase):
@@ -35,4 +36,5 @@ class BikeData(BikeDataBase):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
