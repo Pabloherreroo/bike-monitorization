@@ -9,10 +9,15 @@ import { getBikes, getBikeData } from "./api";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+  const [hideTestBikes, setHideTestBikes] = useState(false)
+  const [hiddenBikeIds, setHiddenBikeIds] = useState([])
 
-  // Datos desde backend
+  // Datos desde backend y filtrados
   const [bikes, setBikes] = useState([]);
   const [bikeData, setBikeData] = useState([]);
+  const [filteredBikes, setFilteredBikes] = useState([])
+  const [filteredBikeData, setFilteredBikeData] = useState([])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -27,14 +32,44 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // Filtrar si boton de test o si icono de superadmin
+  useEffect(() => {
+    let tempBikes = [...bikes]
+    let tempBikeData = [...bikeData]
+
+    if (hideTestBikes) {
+      tempBikes = tempBikes.filter((bike) => !/^BP\d+$/.test(bike.bike_id))
+      tempBikeData = tempBikeData.filter((data) => !/^BP\d+$/.test(data.bike_id))
+    }
+    if (hiddenBikeIds.length > 0) {
+      tempBikeData = tempBikeData.filter((data) => !hiddenBikeIds.includes(data.bike_id))
+    }
+
+    setFilteredBikes(tempBikes)
+    setFilteredBikeData(tempBikeData)
+  }, [bikes, bikeData, hideTestBikes, hiddenBikeIds])
+
   const handleLogin = (username, password) => {
     // Simple authentication for demo, luego verificar
     if (username && password) {
-      setIsAuthenticated(true);
-      return true;
+      setIsAuthenticated(true)
+      if (username === "superAdmin" && password === "superAdmin") {
+        setIsSuperAdmin(true)
+      } else {
+        setIsSuperAdmin(false)
+      }
+      return true
     }
-    return false;
-  };
+    return false
+  }
+
+  const toggleHideTestBikes = () => {
+    setHideTestBikes((prev) => !prev)
+  }
+
+  const toggleHideBike = (bikeId) => {
+    setHiddenBikeIds((prev) => (prev.includes(bikeId) ? prev.filter((id) => id !== bikeId) : [...prev, bikeId]))
+  }
 
   return (
     <Router>
@@ -47,26 +82,48 @@ function App() {
               : <Navigate to="/dashboard" replace />
           } 
         />
-        <Route 
-          path="/dashboard" 
+        <Route
+          path="/dashboard"
           element={
-            isAuthenticated 
-              ? <MainLayout bikeData={bikeData} ><Dashboard bikeData={bikeData} bikes={bikes} /></MainLayout> 
-              : <Navigate to="/login" replace />
-          } 
+            isAuthenticated ? (
+              <MainLayout
+                bikeData={filteredBikeData}
+                toggleHideTestBikes={toggleHideTestBikes}
+                hideTestBikes={hideTestBikes}
+              >
+                <Dashboard
+                  bikeData={filteredBikeData}
+                  bikes={filteredBikes}
+                  isSuperAdmin={isSuperAdmin}
+                  hiddenBikeIds={hiddenBikeIds}
+                  toggleHideBike={toggleHideBike}
+                />
+              </MainLayout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
         />
-        <Route 
-          path="/maps" 
+        <Route
+          path="/maps"
           element={
-            isAuthenticated 
-              ? <MainLayout bikeData={bikeData} ><Maps bikeData={bikeData} /></MainLayout> 
-              : <Navigate to="/login" replace />
-          } 
+            isAuthenticated ? (
+              <MainLayout
+                bikeData={filteredBikeData}
+                toggleHideTestBikes={toggleHideTestBikes}
+                hideTestBikes={hideTestBikes}
+              >
+                <Maps bikeData={filteredBikeData} />
+              </MainLayout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
         />
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
-  );
+  )
 }
 
 export default App;

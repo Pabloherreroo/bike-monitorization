@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import DistrictTable from "../components/DistrictTable"
 import '../styles/App.css';
 
-const MainLayout = ({ children, bikeData }) => {
+const MainLayout = ({ children, bikeData, toggleHideTestBikes, hideTestBikes }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const isMapsActive = location.pathname === '/maps';
@@ -26,6 +26,9 @@ const MainLayout = ({ children, bikeData }) => {
             <header className="header">
                 <h1>Sistema de Monitorización de Bicicletas</h1>
                 <div className="header-controls">
+                    <button className="test-bikes-button" onClick={toggleHideTestBikes}>
+                        {hideTestBikes ? "Mostrar datos de prueba" : "Quitar datos de prueba"}
+                    </button>
                     <button className="table-button" onClick={toggleTable} title="Ver evaluación de distritos">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"

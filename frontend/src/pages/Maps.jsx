@@ -38,9 +38,26 @@ const Heatmap = ({ data }) => {
     return null;
 };
 
+// Hace que el mapa se actualice cuando invalido datos de prueba
+const GeoJSONWithUpdates = ({ data, style, geoJsonKey }) => {
+    const map = useMap()
+  
+    useEffect(() => {
+      if (map) {
+        map.invalidateSize()
+      }
+    }, [data, map])
+  
+    return <GeoJSON key={geoJsonKey} data={data} style={style} />
+}
+
 const Maps = ({ bikeData }) => {
     const [activeTimeFrame, setActiveTimeFrame] = useState('1d');
     const [geoJsonKey, setGeoJsonKey] = useState(0);
+
+    useEffect(() => {
+        setGeoJsonKey((prev) => prev + 1)
+    }, [bikeData])
 
     const timeFrames = [
         { id: '1d', label: '1d' },
@@ -215,9 +232,9 @@ const Maps = ({ bikeData }) => {
                     <h3 className="map-box-title">Estado de carreteras y carriles</h3>
                     <MapContainer center={mapCenter} zoom={13} className="map-box">
                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                        <GeoJSON
-                            key={geoJsonKey}
+                        <GeoJSONWithUpdates
                             data={roadsGeoJson}
+                            geoJsonKey={geoJsonKey}
                             style={(feature) => ({
                                 color: getRoadColor(feature.properties.condition),
                                 weight: 5,

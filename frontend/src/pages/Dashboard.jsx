@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import '../styles/Dashboard.css';
 
-const Dashboard = ({ bikeData, bikes }) => {
+const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBike }) => {
     
     const processedData = useMemo(() => {
         // Verificamos si hay datos disponibles y si no predeterminados
@@ -18,7 +18,7 @@ const Dashboard = ({ bikeData, bikes }) => {
             };
         }
 
-        // Solo ultimos 15 días
+        // Solo ultimos 15 días, aunque ponga 2 (a cambiar y definir filtro)
         const dosdiasAtras = new Date();
         dosdiasAtras.setDate(dosdiasAtras.getDate() - 15);
         
@@ -27,13 +27,15 @@ const Dashboard = ({ bikeData, bikes }) => {
             return fechaDato >= dosdiasAtras;
         });
         
-        const airValueBilbao = Math.round(
-            datosFiltrados.reduce((sum, dato) => sum + dato.calidad_ambiental, 0) / datosFiltrados.length
-        );
+        const airValueBilbao =
+            datosFiltrados.length > 0
+                ? Math.round(datosFiltrados.reduce((sum, dato) => sum + dato.calidad_ambiental, 0) / datosFiltrados.length)
+                : 0
         
-        const noiseValueBilbao = Math.round(
-            datosFiltrados.reduce((sum, dato) => sum + dato.ruido, 0) / datosFiltrados.length
-        );
+        const noiseValueBilbao =
+            datosFiltrados.length > 0
+                ? Math.round(datosFiltrados.reduce((sum, dato) => sum + dato.ruido, 0) / datosFiltrados.length)
+                : 0
         
         const barriosMap = {};
         
@@ -258,6 +260,47 @@ const Dashboard = ({ bikeData, bikes }) => {
                                             <span>{bike.estado === 'en funcionamiento' ? 'En movimiento' : 'Parada'}</span>
                                             <div className={`status-indicator ${bike.estado === 'en funcionamiento' ? 'indicator-active' : 'indicator-inactive'}`}></div>
                                         </div>
+                                        {isSuperAdmin && (
+                                            <div
+                                                className="visibility-toggle"
+                                                onClick={(e) => {
+                                                e.stopPropagation()
+                                                toggleHideBike(bike.bike_id)
+                                                }}
+                                            >
+                                                {hiddenBikeIds.includes(bike.bike_id) ? (
+                                                <svg
+                                                    className="eye-icon eye-closed"
+                                                    width="20"
+                                                    height="20"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                >
+                                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                                </svg>
+                                                ) : (
+                                                <svg
+                                                    className="eye-icon eye-open"
+                                                    width="20"
+                                                    height="20"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                >
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                    <circle cx="12" cy="12" r="3"></circle>
+                                                </svg>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 ))
                             ) : (
