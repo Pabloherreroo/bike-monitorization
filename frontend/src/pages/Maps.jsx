@@ -51,13 +51,12 @@ const GeoJSONWithUpdates = ({ data, style, geoJsonKey }) => {
     return <GeoJSON key={geoJsonKey} data={data} style={style} />
 }
 
-const Maps = ({ bikeData }) => {
-    const [activeTimeFrame, setActiveTimeFrame] = useState('1d');
+const Maps = ({ bikeData, activeTimeFrame, onTimeFrameChange, activeColors, onColorChange, roadConditions }) => {
     const [geoJsonKey, setGeoJsonKey] = useState(0);
 
     useEffect(() => {
         setGeoJsonKey((prev) => prev + 1)
-    }, [bikeData])
+    }, [bikeData, activeTimeFrame, activeColors])
 
     const timeFrames = [
         { id: '1d', label: '1d' },
@@ -65,16 +64,6 @@ const Maps = ({ bikeData }) => {
         { id: '1m', label: '1m' },
         { id: 'tot', label: 'Tot' }
     ];
-
-    const roadConditions = [
-        { id: 'green', condition: 'good', color: "#4CAF50", score: 1 },
-        { id: 'yellow', condition: 'mid', color: "#FFEB3B", score: 2 },
-        { id: 'orange', condition: 'bad', color: "#FF9800", score: 3 },
-        { id: 'red', condition: 'very_bad', color: "#F44336", score: 4 }
-    ];
-    
-    // Estado para los colores activos, inicialmente todos
-    const [activeColors, setActiveColors] = useState(roadConditions.map(c => c.id));
 
     // Función para calcular la ventana de tiempo según el filtro 
     const getTimeWindow = () => {
@@ -171,16 +160,11 @@ const Maps = ({ bikeData }) => {
     }, [bikeData, activeColors]);
 
     const handleTimeFrameClick = (timeFrame) => {
-        setActiveTimeFrame(timeFrame);
+        onTimeFrameChange(timeFrame)
     };
 
     const handleColorClick = (colorId) => {
-        if (activeColors.includes(colorId)) {
-            setActiveColors(activeColors.filter(id => id !== colorId));
-        } else {
-            setActiveColors([...activeColors, colorId]);
-        }
-        setGeoJsonKey(prevKey => prevKey + 1);
+        onColorChange(colorId)
     };
 
     const activeIndex = timeFrames.findIndex(tf => tf.id === activeTimeFrame);

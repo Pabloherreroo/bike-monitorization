@@ -19,6 +19,16 @@ function App() {
   const [filteredBikes, setFilteredBikes] = useState([])
   const [filteredBikeData, setFilteredBikeData] = useState([])
 
+  // Filtros de Mapas
+  const [activeTimeFrame, setActiveTimeFrame] = useState("1d")
+  const roadConditions = [
+    { id: "green", condition: "good", color: "#4CAF50", score: 1 },
+    { id: "yellow", condition: "mid", color: "#FFEB3B", score: 2 },
+    { id: "orange", condition: "bad", color: "#FF9800", score: 3 },
+    { id: "red", condition: "very_bad", color: "#F44336", score: 4 },
+  ]
+  const [activeColors, setActiveColors] = useState(roadConditions.map((c) => c.id))
+
   useEffect(() => {
     const fetchData = async () => {
       const bikesResponse = await getBikes();
@@ -71,6 +81,15 @@ function App() {
     setHiddenBikeIds((prev) => (prev.includes(bikeId) ? prev.filter((id) => id !== bikeId) : [...prev, bikeId]))
   }
 
+  // Filtros de Mapa
+  const handleTimeFrameClick = (timeFrame) => {
+    setActiveTimeFrame(timeFrame)
+  }
+
+  const handleColorClick = (colorId) => {
+    setActiveColors((prev) => (prev.includes(colorId) ? prev.filter((id) => id !== colorId) : [...prev, colorId]))
+  }
+
   return (
     <Router>
       <Routes>
@@ -113,7 +132,14 @@ function App() {
                 toggleHideTestBikes={toggleHideTestBikes}
                 hideTestBikes={hideTestBikes}
               >
-                <Maps bikeData={filteredBikeData} />
+                <Maps
+                  bikeData={filteredBikeData}
+                  activeTimeFrame={activeTimeFrame}
+                  onTimeFrameChange={handleTimeFrameClick}
+                  activeColors={activeColors}
+                  onColorChange={handleColorClick}
+                  roadConditions={roadConditions}
+                />
               </MainLayout>
             ) : (
               <Navigate to="/login" replace />
