@@ -4,21 +4,36 @@ Este sistema permite la administración y monitorización en tiempo real de bici
 
 - **Backend**: FastAPI (Python) para recibir datos de los sensores y manejar la autenticación de usuarios.
 - **Frontend**: React (Vite) para ofrecer una interfaz moderna y responsive.
-- **Otros**: Todavía no se han establecido la BD ni cómo se hará la transmisión en tiempo real de datos.
+- **Base de datos**: PostgreSQL con la extensión TimescaleDB para el almacenamiento eficiente de series temporales de datos provenientes de los sensores.
 
-## Ejecución
-### 1. Configuración del Backend (FastAPI)
+## Ejecución con Docker
+El proyecto está completamente dockerizado para facilitar su despliegue. Para ejecutar el sistema completo:
+```sh
+docker-compose up --build
+```
+Esto inicia:
+- Base de datos PostgreSQL/TimescaleDB en el puerto 5432
+- Servicio de backend (FastAPI) en el puerto 8000
+- Interfaz de frontend (React/Vite) en el puerto 80
+
+
+## Ejecución Manual
+### 1. Configuración de la Base de Datos
+```sh
+psql -U postgres -f bike-monitorization\db\init.sql
+psql -U postgres -d bicicleta_data -f bike-monitorization\db\populate.sql
+```
+
+### 2. Configuración del Backend
 ```sh
 cd backend
 pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-### 2. Configuración del Frontend (React)
+### 3. Configuración del Frontend
 ```sh
 cd frontend
 npm install
 npm run dev
 ```
-
-Se pretende Dockerizar el proyecto en una etapa posterior, al igual que implementarlo a través de alguna plataforma para que la web esté disponible online.
