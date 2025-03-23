@@ -1,24 +1,15 @@
-# Build stage
-FROM node:16 AS build
+FROM node:20
 
 WORKDIR /app
 
-# Set environment variables
-ENV NODE_OPTIONS=--openssl-legacy-provider
 ENV VITE_CJS_IGNORE_WARNING=true
 
-# Install dependencies first 
-COPY package.json package-lock.json ./
+# Install dependencies
+COPY package*.json ./
 RUN npm install
 
-# Copy the rest of the code
-COPY . .
-
-RUN npm run build
-
-# Production stage
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
+# Expose the development port
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+# Use Vite's development server in dev mode
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "80"]
