@@ -1,10 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
-from typing import List
-import time
-import threading
-import random
 from app import models, schemas, utils
 from app.database import get_db
 
@@ -16,7 +12,7 @@ def crear_bike_data(data: schemas.BikeDataCreate, db: Session = Depends(get_db))
     if not hasattr(data, 'fecha') or data.fecha is None:
         data.fecha = datetime.now()
     if not data.barrio:
-        data.barrio = utils.calcularBarrio(data.latitud, data.longitud)
+        data.barrio = utils.obtener_barrio(data.latitud, data.longitud)
     
     if not data.barrio or data.barrio == "Fuera de Bilbao":
         raise HTTPException(status_code=400, detail="La ubicación no pertenece a Bilbao, no se almacena.")

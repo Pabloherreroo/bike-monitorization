@@ -174,7 +174,7 @@ const Maps = ({ bikeData, activeTimeFrame, onTimeFrameChange, activeColors, onCo
         return roadCondition ? roadCondition.color : "#000";
     };
 
-    // Calcular el centro del mapa basado en los datos disponibles
+    // Calcular el centro del mapa basado en los datos disponibles -> Funciona?
     const mapCenter = useMemo(() => {
         if (heatmapData.length > 0) {
             return [heatmapData[0].lat, heatmapData[0].lng];

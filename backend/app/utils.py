@@ -143,7 +143,7 @@ barrios = {
         (43.264914, -2.908508), # BI-631
         (43.269908, -2.906774), # BI-631
         (43.270737, -2.902366), # 'La curva del amor'
-        (43.265173, -2.880211), # Hospital Santa Marina
+        (43.265173, -2.880211) # Hospital Santa Marina
     ]),
     "Uribarri": Polygon([
         (43.258292, -2.911582), # Calle Zabalbide
@@ -176,7 +176,7 @@ barrios = {
         (43.257306, -2.931337), # Calle Particular del Nte.
         (43.257113, -2.932283), # Calle San Francisco
         (43.255941, -2.933199), # Plaza Zabalburu
-        (43.257268, -2.934631) # Plaza Zabalburu - Autonomía
+        (43.257268, -2.934631), # Plaza Zabalburu - Autonomía
         (43.257854, -2.946085), # Av del Ferrocarril - Autonomía
         (43.257854, -2.946085), # Av del Ferrocarril - Autonomía
         (43.259362, -2.946310), # Av del Ferrocarril
@@ -185,12 +185,12 @@ barrios = {
         (43.265591, -2.945924), # Sagrado Corazón
         (43.265612, -2.948958), # San Mamés
         (43.266341, -2.950248), # Ría- Esquina Zorrotzaure
-        (43.269465, -2.940549), # Ría - Puente de Deusto
+        (43.269465, -2.940549) # Ría - Puente de Deusto
     ]),
 }
 
 def obtener_barrio(latitud, longitud):
-    punto = Point(longitud, latitud)
+    punto = Point(latitud, longitud)
     for nombre_barrio, poligono in barrios.items():
         if poligono.contains(punto):
             return nombre_barrio

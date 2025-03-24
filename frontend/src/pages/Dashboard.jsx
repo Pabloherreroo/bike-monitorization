@@ -121,6 +121,30 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
         return /^BP\d+$/.test(bikeId) // Busca que empiece por BP y el resto sean solo numeros
     }
 
+    // Ordenar bicis para el estado
+    const sortedBikes = useMemo(() => {
+        return [...bikes].sort((a, b) => {
+            // B antes que BP
+            const isBbikeA = /^B\d+/.test(a.bike_id);
+            const isBbikeB = /^B\d+/.test(b.bike_id);
+            if (isBbikeA && !isBbikeB) return -1; // A es 'B', B no es 'B'
+            if (!isBbikeA && isBbikeB) return 1; // B es 'B', A no es 'B'
+    
+            // Luego, las que estan moviendose antes que las paradas 
+            if (a.estado === "en funcionamiento" && b.estado !== "en funcionamiento") return -1;
+            if (a.estado !== "en funcionamiento" && b.estado === "en funcionamiento") return 1;
+    
+            // Finalmente, por Bike ID
+            const regex = /^B(\d+)|^BP(\d+)/;
+            const matchA = a.bike_id.match(regex);
+            const matchB = b.bike_id.match(regex);
+            const numA = matchA ? parseInt(matchA[1] || matchA[2]) : Infinity;
+            const numB = matchB ? parseInt(matchB[1] || matchB[2]) : Infinity;
+    
+            return numA - numB;
+        });
+    }, [bikes]);
+
     return (
         <div>
             <h2>Dashboard</h2>
@@ -248,7 +272,7 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
                     <div className="dashboard-card estado-card">
                         <div className="bikes-list-container">
                             {bikes && bikes.length > 0 ? (
-                                bikes.map((bike, index) => (
+                                sortedBikes.map((bike, index) => (
                                     <div key={index} className="bike-row">
                                         <div className={`bike-icon ${isBikeTest(bike.bike_id) ? 'test-bike-icon' : 'normal-bike-icon'}`}>
                                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">

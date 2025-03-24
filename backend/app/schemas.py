@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional
 
 # Modelos pydantic para validación de datos
 class BikeBase(BaseModel):
@@ -24,7 +25,7 @@ class BikeDataBase(BaseModel):
     puntuacion_road: int
     calidad_ambiental: int
     ruido: int
-    barrio: str
+    barrio: Optional[str] = None
     fecha: datetime
 
 class BikeDataCreate(BikeDataBase):
