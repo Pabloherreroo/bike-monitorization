@@ -186,44 +186,34 @@ const Maps = ({ bikeData, activeTimeFrame, onTimeFrameChange, activeColors, onCo
         return roadCondition ? roadCondition.color : "#000";
     };
 
+    const calculateCenter = (points, defaultCenter = [43.263, -2.935]) => {
+        if (points.length === 0) return defaultCenter;
+        const sum = points.reduce(
+            (acc, point) => ({
+                lat: acc.lat + point.lat,
+                lng: acc.lng + point.lng,
+            }),
+            { lat: 0, lng: 0 }
+        );
+        return [sum.lat / points.length, sum.lng / points.length];
+    };
+
     useEffect(() => {
         // Centro del heatmap
-        if (heatmapData.length > 0) {
-            const sum = heatmapData.reduce(
-                (acc, point) => ({
-                    lat: acc.lat + point.lat,
-                    lng: acc.lng + point.lng,
-                }),
-                { lat: 0, lng: 0 }
-            );
-            const center = [sum.lat / heatmapData.length, sum.lng / heatmapData.length];
-            setHeatmapCenterState(center);
-        } else {
-            setHeatmapCenterState([43.263, -2.935]);
-        }
-        // Cuando activeTimeFrame cambia
+        const points = heatmapData.map(({ lat, lng }) => ({ lat, lng }));
+        setHeatmapCenterState(calculateCenter(points));
     }, [activeTimeFrame]);
 
     useEffect(() => {
         // Centro de carreteras, según activeColors
-        if (roadsGeoJson.features.length > 0) {
-            let sumLat = 0, sumLng = 0, count = 0;
-            roadsGeoJson.features.forEach(feature => {
-                const coords = feature.geometry.coordinates;
-                const lat1 = coords[0][1],
-                    lng1 = coords[0][0],
-                    lat2 = coords[1][1],
-                    lng2 = coords[1][0];
-                const midLat = (lat1 + lat2) / 2;
-                const midLng = (lng1 + lng2) / 2;
-                sumLat += midLat;
-                sumLng += midLng;
-                count++;
-            });
-            setRoadsCenterState([sumLat / count, sumLng / count]);
-        } else {
-            setRoadsCenterState([43.263, -2.935]);
-        }
+        const points = roadsGeoJson.features.map(feature => {
+            const coords = feature.geometry.coordinates;
+            return { 
+                lat: (coords[0][1] + coords[1][1]) / 2, 
+                lng: (coords[0][0] + coords[1][0]) / 2 
+            };
+        });
+        setRoadsCenterState(calculateCenter(points));
     }, [activeColors]);
 
     return (
