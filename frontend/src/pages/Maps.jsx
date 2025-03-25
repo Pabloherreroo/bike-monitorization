@@ -55,7 +55,7 @@ const GeoJSONWithUpdates = ({ data, style, geoJsonKey }) => {
 const RecenterMap = ({ center }) => {
     const map = useMap();
     useEffect(() => {
-        map.setView(center, map.getZoom());
+        map.setView(center, 12);
     }, [center, map]);
     return null;
 };
