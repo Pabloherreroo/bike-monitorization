@@ -111,8 +111,14 @@ const DistrictTable = ({ bikeData, isOpen, onClose }) => {
 				data.airQuality.length > 0
 				? data.airQuality.reduce((sum, quality) => sum + quality, 0) / data.airQuality.length
 				: 0
-			const avgNoise = data.noise.length > 0 ? data.noise.reduce((sum, noise) => sum + noise, 0) / data.noise.length : 0
-			const latestDate = data.dates.length > 0 ? new Date(Math.max(...data.dates.map((d) => d.getTime()))) : null
+			const avgNoise = 
+				data.noise.length > 0 
+				? data.noise.reduce((sum, noise) => sum + noise, 0) / data.noise.length 
+				: 0
+			const latestDate = 
+				data.dates.length > 0 
+				? new Date(Math.max(...data.dates.map((d) => d.getTime()))) 
+				: null
 
 			// Total score (0-10)
 			// Road: 1-4 → convert to 0-10 (invert so 1=10)
@@ -186,6 +192,18 @@ const DistrictTable = ({ bikeData, isOpen, onClose }) => {
 				return "score-red"
 			default:
 				return "score-green"
+		}
+	}
+
+	const getRoadQualityTooltip = (score) => {
+		if (score < 1.5) {
+		  	return "Rango 1-1.5: Excelente"
+		} else if (score < 2.5) {
+		  	return "Rango 1.5-2.5: Buena"
+		} else if (score < 3.5) {
+		  	return "Rango 2.5-3.5: Regular"
+		} else {
+		  	return "Rango 3.5-4: Mal estado"
 		}
 	}
 
@@ -315,7 +333,7 @@ const DistrictTable = ({ bikeData, isOpen, onClose }) => {
 								<tr key={district.district}>
 									<td>{district.district}</td>
 									<td>
-										<div className={`score-indicator ${getRoadColorClass(district.roadScore)}`}>
+										<div className={`score-indicator ${getRoadColorClass(district.roadScore)}`} title={getRoadQualityTooltip(district.roadScore)}>
 											{district.roadScore.toFixed(1)}
 										</div>
 									</td>

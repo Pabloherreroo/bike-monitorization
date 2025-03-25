@@ -10,7 +10,7 @@ const Login = ({ onLogin }) => {
         e.preventDefault();
         const success = onLogin(username, password);
         if (!success) {
-        setError('Please enter both username and password');
+        setError('Por favor introduce nombre de usuario y contraseña');
         }
     };
 

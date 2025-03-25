@@ -18,9 +18,9 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
             };
         }
 
-        // Solo ultimos 15 días, aunque ponga 2 (a cambiar y definir filtro)
+        // Solo ultimos 30 días, aunque ponga 2 (a cambiar y definir filtro)
         const dosdiasAtras = new Date();
-        dosdiasAtras.setDate(dosdiasAtras.getDate() - 15);
+        dosdiasAtras.setDate(dosdiasAtras.getDate() - 30);
         
         const datosFiltrados = bikeData.filter(dato => {
             const fechaDato = new Date(dato.fecha);

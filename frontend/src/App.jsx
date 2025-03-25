@@ -12,6 +12,7 @@ function App() {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const [hideTestBikes, setHideTestBikes] = useState(false)
   const [hiddenBikeIds, setHiddenBikeIds] = useState([])
+  const [loadingAuth, setLoadingAuth] = useState(true)
 
   // Datos desde backend y filtrados
   const [bikes, setBikes] = useState([]);
@@ -29,6 +30,14 @@ function App() {
   ]
   const [activeColors, setActiveColors] = useState(roadConditions.map((c) => c.id))
 
+  useEffect(() => {
+    const storedAuth = localStorage.getItem("isAuthenticated") === "true"
+    const storedSuperAdmin = localStorage.getItem("isSuperAdmin") === "true"
+    setIsAuthenticated(storedAuth)
+    setIsSuperAdmin(storedSuperAdmin)
+    setLoadingAuth(false)
+  }, []);
+  
   useEffect(() => {
     const fetchData = async () => {
       const bikesResponse = await getBikes();
@@ -63,10 +72,13 @@ function App() {
     // Simple authentication for demo, luego verificar
     if (username && password) {
       setIsAuthenticated(true)
+      localStorage.setItem("isAuthenticated", "true")
       if (username === "superAdmin" && password === "superAdmin") {
         setIsSuperAdmin(true)
+        localStorage.setItem("isSuperAdmin", "true")
       } else {
         setIsSuperAdmin(false)
+        localStorage.setItem("isSuperAdmin", "false")
       }
       return true
     }
@@ -88,6 +100,10 @@ function App() {
 
   const handleColorClick = (colorId) => {
     setActiveColors((prev) => (prev.includes(colorId) ? prev.filter((id) => id !== colorId) : [...prev, colorId]))
+  }
+
+  if (loadingAuth) {
+    return 
   }
 
   return (

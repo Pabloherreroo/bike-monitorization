@@ -14,19 +14,20 @@ const Heatmap = ({ data }) => {
         // Gradiente personalizado segun intensidad -> A retocar
         const gradient = {
             0.0: 'blue',
-            0.2: 'lime',
-            0.4: 'yellow',
-            0.6: 'orange',
-            0.8: 'red',
-            1.0: 'darkred'
+            0.4: 'lime',
+            0.6: 'yellow',
+            0.8: 'orange',
+            1.0: 'red'
         };
 
         const heatmapPoints = data.map(point => [point.lat, point.lng]);
 
         const heatLayer = L.heatLayer(heatmapPoints, {
-            radius: 25,
+            radius: 15,
             blur: 25,
             maxZoom: 17,
+            max: 1,          
+            minOpacity: 0.3,
             gradient: gradient,  
         }).addTo(map);
 
@@ -51,7 +52,18 @@ const GeoJSONWithUpdates = ({ data, style, geoJsonKey }) => {
     return <GeoJSON key={geoJsonKey} data={data} style={style} />
 }
 
+const RecenterMap = ({ center }) => {
+    const map = useMap();
+    useEffect(() => {
+        map.setView(center, map.getZoom());
+    }, [center, map]);
+    return null;
+};
+
 const Maps = ({ bikeData, activeTimeFrame, onTimeFrameChange, activeColors, onColorChange, roadConditions }) => {
+    const [roadsCenterState, setRoadsCenterState] = useState([43.263, -2.935]);
+    const [heatmapCenterState, setHeatmapCenterState] = useState([43.263, -2.935]);
+
     const [geoJsonKey, setGeoJsonKey] = useState(0);
 
     useEffect(() => {
@@ -174,21 +186,54 @@ const Maps = ({ bikeData, activeTimeFrame, onTimeFrameChange, activeColors, onCo
         return roadCondition ? roadCondition.color : "#000";
     };
 
-    // Calcular el centro del mapa basado en los datos disponibles -> Funciona?
-    const mapCenter = useMemo(() => {
+    useEffect(() => {
+        // Centro del heatmap
         if (heatmapData.length > 0) {
-            return [heatmapData[0].lat, heatmapData[0].lng];
+            const sum = heatmapData.reduce(
+                (acc, point) => ({
+                    lat: acc.lat + point.lat,
+                    lng: acc.lng + point.lng,
+                }),
+                { lat: 0, lng: 0 }
+            );
+            const center = [sum.lat / heatmapData.length, sum.lng / heatmapData.length];
+            setHeatmapCenterState(center);
+        } else {
+            setHeatmapCenterState([43.263, -2.935]);
         }
-        return [43.263, -2.935]; 
-    }, [heatmapData]);
+        // Cuando activeTimeFrame cambia
+    }, [activeTimeFrame]);
+
+    useEffect(() => {
+        // Centro de carreteras, según activeColors
+        if (roadsGeoJson.features.length > 0) {
+            let sumLat = 0, sumLng = 0, count = 0;
+            roadsGeoJson.features.forEach(feature => {
+                const coords = feature.geometry.coordinates;
+                const lat1 = coords[0][1],
+                    lng1 = coords[0][0],
+                    lat2 = coords[1][1],
+                    lng2 = coords[1][0];
+                const midLat = (lat1 + lat2) / 2;
+                const midLng = (lng1 + lng2) / 2;
+                sumLat += midLat;
+                sumLng += midLng;
+                count++;
+            });
+            setRoadsCenterState([sumLat / count, sumLng / count]);
+        } else {
+            setRoadsCenterState([43.263, -2.935]);
+        }
+    }, [activeColors]);
 
     return (
         <div className="maps-container">
             <div className="maps-row">
                 <div className="map-box-container">
                     <h3 className="map-box-title">Flujo de ciclistas</h3>
-                    <MapContainer center={mapCenter} zoom={13} className="map-box">
+                    <MapContainer center={heatmapCenterState} zoom={13} className="map-box">
                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                        <RecenterMap center={heatmapCenterState} />
                         <Heatmap data={heatmapData} />
                     </MapContainer>
                     <div className="time-slider-container">
@@ -214,8 +259,9 @@ const Maps = ({ bikeData, activeTimeFrame, onTimeFrameChange, activeColors, onCo
                 </div>
                 <div className="map-box-container">
                     <h3 className="map-box-title">Estado de carreteras y carriles</h3>
-                    <MapContainer center={mapCenter} zoom={13} className="map-box">
+                    <MapContainer center={roadsCenterState} zoom={13} className="map-box">
                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                        <RecenterMap center={roadsCenterState} />
                         <GeoJSONWithUpdates
                             data={roadsGeoJson}
                             geoJsonKey={geoJsonKey}
