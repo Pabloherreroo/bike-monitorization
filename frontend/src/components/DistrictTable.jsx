@@ -241,7 +241,7 @@ const DistrictTable = ({ bikeData, isOpen, onClose }) => {
 								</th>
 								<th>
 									<div className="sort-header" onClick={() => requestSort("roadScore")}>
-										Vías
+										Estado de Vías
 										{getSortIndicator("roadScore")}
 									</div>
 									<div className="weight-control">
@@ -322,7 +322,7 @@ const DistrictTable = ({ bikeData, isOpen, onClose }) => {
 								</th>
 								<th>
 									<div className="sort-header" onClick={() => requestSort("totalScore")}>
-										Puntuación total
+										Grado de Ciclabilidad
 										{getSortIndicator("totalScore")}
 									</div>
 								</th>

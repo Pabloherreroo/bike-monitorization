@@ -150,7 +150,7 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
             <h2>Dashboard</h2>
             <div className="dashboard-container">
                 <div className="dashboard-card-container">
-                    <h3 className="dashboard-card-title">Calidad del Aire</h3>
+                    <h3 className="dashboard-card-title">Índice de Calidad del Aire</h3>
                     <div className="dashboard-card air-quality-card">
                         <div className="air-quality-left">
                             <div className="gauge-container">
@@ -177,7 +177,7 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
                                             <div key={index} className="ranking-item">
                                                 <span className="ranking-name">{item.name}</span>
                                                 <div className="ranking-score">
-                                                    <span>{item.value}</span>
+                                                    <span>{item.value} %</span>
                                                     <div className={`color-indicator ${getAirColorClass(item.value)}`}></div>
                                                 </div>
                                             </div>
@@ -189,7 +189,7 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
                                             <div key={index} className="ranking-item">
                                                 <span className="ranking-name">{item.name}</span>
                                                 <div className="ranking-score">
-                                                    <span>{item.value}</span>
+                                                    <span>{item.value} %</span>
                                                     <div className={`color-indicator ${getAirColorClass(item.value)}`}></div>
                                                 </div>
                                             </div>
@@ -236,7 +236,7 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
                                             <div key={index} className="ranking-item">
                                                 <span className="ranking-name">{item.name}</span>
                                                 <div className="ranking-score">
-                                                    <span>{item.value}</span>
+                                                    <span>{item.value} dB</span>
                                                     <div className={`color-indicator ${getNoiseColorClass(item.value)}`}></div>
                                                 </div>
                                             </div>
@@ -248,7 +248,7 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
                                             <div key={index} className="ranking-item">
                                                 <span className="ranking-name">{item.name}</span>
                                                 <div className="ranking-score">
-                                                    <span>{item.value}</span>
+                                                    <span>{item.value} dB</span>
                                                     <div className={`color-indicator ${getNoiseColorClass(item.value)}`}></div>
                                                 </div>
                                             </div>
