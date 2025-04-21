@@ -27,7 +27,7 @@ BEGIN
             longitud DOUBLE PRECISION NOT NULL,
             puntuacion_road INT CHECK (puntuacion_road >= 1 AND puntuacion_road <= 4) NOT NULL,
             calidad_ambiental INT CHECK (calidad_ambiental >= 0 AND calidad_ambiental <= 100) NOT NULL,
-            temperatura INT CHECK (temperatura > -40 AND temperatura < 85) NOT NULL,
+            temperatura DECIMAL(4,1) CHECK (temperatura > -40 AND temperatura < 85) NOT NULL,
             humedad INT CHECK (humedad >= 0 AND humedad <= 100) NOT NULL,
             presion INT CHECK (presion >= 300 AND presion <= 1100) NOT NULL,
             ruido INT CHECK (ruido >= 0 AND ruido <= 120) NOT NULL,

@@ -23,8 +23,12 @@ class BikeDataBase(BaseModel):
     latitud: float
     longitud: float
     puntuacion_road: int
-    calidad_ambiental: int
+    calidad_ambiental: Optional[int] = None 
+    temperatura: float
+    humedad: int
+    presion: int
     ruido: int
+    luz: int
     barrio: Optional[str] = None
     fecha: datetime
 

@@ -150,7 +150,7 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
             <h2>Dashboard</h2>
             <div className="dashboard-container">
                 <div className="dashboard-card-container">
-                    <h3 className="dashboard-card-title">Índice de Calidad del Aire</h3>
+                    <h3 className="dashboard-card-title">Índice de Confortabilidad Ambiental</h3>
                     <div className="dashboard-card air-quality-card">
                         <div className="air-quality-left">
                             <div className="gauge-container">
@@ -172,7 +172,7 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
                                 <div className="air-quality-right">
                                     {/* Establezco los colores correctos para los datos de arriba */}
                                     <div className="air-quality-rankings top-rankings">
-                                        <h4>Lugares menos contaminados</h4>
+                                        <h4>Lugares más confortables</h4>
                                         {processedData.bestAirQuality.map((item, index) => (
                                             <div key={index} className="ranking-item">
                                                 <span className="ranking-name">{item.name}</span>
@@ -184,7 +184,7 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
                                         ))}
                                     </div>
                                     <div className="air-quality-rankings bottom-rankings">
-                                        <h4>Lugares más contaminados</h4>
+                                        <h4>Lugares menos confortables</h4>
                                         {processedData.worstAirQuality.map((item, index) => (
                                             <div key={index} className="ranking-item">
                                                 <span className="ranking-name">{item.name}</span>
@@ -262,8 +262,8 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
                     </div>
                 </div>
                 <div className="dashboard-card-container">
-                    <h3 className="dashboard-card-title">Alertas</h3>
-                    <div className="dashboard-card alert-card">
+                    <h3 className="dashboard-card-title">Luminosidad</h3>
+                    <div className="dashboard-card light-card">
                         
                     </div>
                 </div>

@@ -17,6 +17,9 @@ def crear_bike_data(data: schemas.BikeDataCreate, db: Session = Depends(get_db))
     if not data.barrio or data.barrio == "Fuera de Bilbao":
         raise HTTPException(status_code=400, detail="La ubicación no pertenece a Bilbao, no se almacena.")
 
+    if not data.calidad_ambiental:
+        data.calidad_ambiental = utils.calcular_calidad_amb(data.temperatura, data.humedad, data.presion)
+
     # Crear bike si no existe
     bike = db.query(models.Bike).filter(models.Bike.bike_id == data.bike_id).first()
     if not bike:
@@ -31,6 +34,7 @@ def crear_bike_data(data: schemas.BikeDataCreate, db: Session = Depends(get_db))
     
     utils.register_bike_update(data.bike_id)
     
+    print("DATA A INSERTAR:", data.model_dump())
     bike_data = models.BikeData(**data.model_dump())
     
     db.add(bike_data)

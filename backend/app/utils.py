@@ -198,6 +198,31 @@ def obtener_barrio(latitud, longitud):
 
 last_update_times = {}
 
+def score_variable(value, ideal_min, ideal_max, limit_min, limit_max):
+    if value < ideal_min:
+        return max(0, (value - limit_min) / (ideal_min - limit_min))
+    elif value > ideal_max:
+        return max(0, (limit_max - value) / (limit_max - ideal_max))
+    if ideal_min <= value <= ideal_max:
+        return 1.0  # dentro del rango ideal
+    else:
+        return 0.0  # condiciones muy extremas
+
+def calcular_calidad_amb(temperatura, humedad, presion):
+    PARAMETROS = {
+        'temp': {'ideal_min': 20.0, 'ideal_max': 23.0, 'limit_min': -5.0, 'limit_max': 45.0, 'peso': 0.55},
+        'hum': {'ideal_min': 40.0, 'ideal_max': 60.0, 'limit_min': 0.0, 'limit_max': 100.0, 'peso': 0.35},
+        'pres': {'ideal_min': 1010.0, 'ideal_max': 1020.0, 'limit_min': 980.0, 'limit_max': 1040.0, 'peso': 0.1}
+    }
+    # Calcular puntajes
+    score_temp = score_variable(temperatura, **{k: PARAMETROS['temp'][k] for k in ['ideal_min', 'ideal_max', 'limit_min', 'limit_max']})
+    score_hum = score_variable(humedad, **{k: PARAMETROS['hum'][k] for k in ['ideal_min', 'ideal_max', 'limit_min', 'limit_max']})
+    score_pres = score_variable(presion, **{k: PARAMETROS['pres'][k] for k in ['ideal_min', 'ideal_max', 'limit_min', 'limit_max']})
+    
+    # Calcular índice ponderado
+    indice = (PARAMETROS['temp']['peso'] * score_temp + PARAMETROS['hum']['peso'] * score_hum + PARAMETROS['pres']['peso'] * score_pres)
+    return round(indice * 100)
+
 def register_bike_update(bike_id: str):    
     last_update_times[bike_id] = time.time()
 
