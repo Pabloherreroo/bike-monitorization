@@ -14,11 +14,19 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
                 quietestAreas: [],
                 noisestAreas: [],
                 angle: -90,
-                noisePosition: 100 
+                noisePosition: 100,
+                lightData: {
+                    hasData: false,
+                    valorLuz: 0,
+                    lightClass: "",
+                    lightImage: "no_datos_luz.png",
+                    lightCategory: "",
+                },
             };
         }
 
-        // Solo ultimos 30 días, aunque ponga 2 (a cambiar y definir filtro)
+        // Filtro que ahora actua para los ultimos 30 dias por haber pocos datos
+        // En producción estaría pensado para actuar con los datos de 2 días
         const dosdiasAtras = new Date();
         dosdiasAtras.setDate(dosdiasAtras.getDate() - 30);
         
@@ -88,6 +96,61 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
         
         const angle = (airValueBilbao * 180 / 100) - 90;
         const noisePosition = 100 - (noiseValueBilbao / 120 * 100);
+
+        // Luminosidad: últimos 30 minutos
+        const mediaHoraAtras = new Date()
+        mediaHoraAtras.setMinutes(mediaHoraAtras.getMinutes() - 30)
+
+        const datosLuzRecientes = bikeData.filter((dato) => {
+            const fechaDato = new Date(dato.fecha)
+            return fechaDato >= mediaHoraAtras && dato.luz !== undefined
+        })
+
+        // Valores predeterminados sin datos
+        let lightData = {
+            hasData: false,
+            valorLuz: 0,
+            lightClass: "",
+            lightImage: "no_datos_luz.png",
+            lightCategory: "",
+        }
+
+        // Con datos recientes
+        if (datosLuzRecientes && datosLuzRecientes.length > 0) {
+            const valorLuz = Math.round(datosLuzRecientes.reduce((sum, dato) => sum + dato.luz, 0) / datosLuzRecientes.length)
+
+            let lightClass, lightImage, lightCategory
+
+            if (valorLuz < 10) {
+                lightClass = "darkness-night"
+                lightImage = "media_luna.png"
+                lightCategory = "Noche oscura"
+            } else if (valorLuz < 100) {
+                lightClass = "illuminated-night"
+                lightImage = "luna_llena.png"
+                lightCategory = "Noche iluminada"
+            } else if (valorLuz < 600) {
+                lightClass = "dawn-dusk"
+                lightImage = "sol_horizonte.png"
+                lightCategory = "Atardecer/Amanecer"
+            } else if (valorLuz < 10000) {
+                lightClass = "cloudy-day"
+                lightImage = "solnube.png"
+                lightCategory = "Día nublado"
+            } else {
+                lightClass = "bright-day"
+                lightImage = "sol.png"
+                lightCategory = "Día despejado"
+            }
+
+            lightData = {
+                hasData: true,
+                valorLuz,
+                lightClass,
+                lightImage,
+                lightCategory,
+            }
+        }
         
         return {
             airValueBilbao,
@@ -97,7 +160,8 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
             quietestAreas,
             noisestAreas,
             angle,
-            noisePosition
+            noisePosition,
+            lightData,
         };
     }, [bikeData]);
 
@@ -264,7 +328,24 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
                 <div className="dashboard-card-container">
                     <h3 className="dashboard-card-title">Luminosidad</h3>
                     <div className="dashboard-card light-card">
-                        
+                        {processedData.lightData && processedData.lightData.hasData ? (
+                            <div className={`light-content ${processedData.lightData.lightClass}`}>
+                                <div className="light-icon">
+                                    <img src={`/src/assets/${processedData.lightData.lightImage}`} alt="Indicador de luz" />
+                                </div>
+                                <div className="light-category">{processedData.lightData.lightCategory}</div>
+                                <div className="light-value">
+                                    {processedData.lightData.valorLuz} <span>Lux</span>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="no-light-data">
+                                <div className="light-icon">
+                                    <img src="/src/assets/no_datos_luz.png" alt="No hay datos de luz" />
+                                </div>
+                                <p className="no-light-message">No se puede mostrar el nivel actual de luz por falta de datos</p>
+                            </div>
+                        )}
                     </div>
                 </div>
                 <div className="dashboard-card-container">

@@ -266,7 +266,7 @@ const DistrictTable = ({ bikeData, isOpen, onClose }) => {
 								</th>
 								<th>
 									<div className="sort-header" onClick={() => requestSort("airQuality")}>
-										Aire
+										Confortabilidad Ambiental
 										{getSortIndicator("airQuality")}
 									</div>
 									<div className="weight-control">
