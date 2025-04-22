@@ -443,7 +443,6 @@ const Maps = ({ bikeData, bikes, activeTimeFrame, onTimeFrameChange, activeColor
         const points = heatmapData.map(({ lat, lng }) => ({ lat, lng }));
         const newCenter = calculateCenter(points);
         setHeatmapCenterState(newCenter);
-        // Apagamos el flag para no volver a recentrar hasta el siguiente filtro
         setShouldRecenterHeatmap(false);
     }, [heatmapData, shouldRecenterHeatmap]);
 

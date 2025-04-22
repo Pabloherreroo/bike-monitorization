@@ -1,61 +1,3 @@
-:root {
-    --soft-color: #a33535;
-    --creamy-white: #FFF8E1;
-    --dark-color: #540e0e;
-    --light-gray: #F0F0F0;
-    --dark-gray: #333333;
-}
-  
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-  
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: var(--creamy-white);
-    color: var(--dark-gray);
-}
-  
-button {
-    cursor: pointer;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    background-color: var(--soft-color);
-    color: white;
-    font-weight: bold;
-    transition: background-color 0.2s;
-}
-  
-button:hover {
-    background-color: var(--dark-color);
-}
-  
-input {
-    padding: 10px;
-    border: 1px solid var(--light-gray);
-    border-radius: 5px;
-    font-size: 16px;
-    width: 100%;
-    margin-bottom: 15px;
-}
-  
-.container {
-    width: 100%;
-    max-width: 1300px;
-    margin: 0 auto;
-    padding: 20px;
-}
-  
-.card {
-    background-color: white;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
 /* Mapas */
 .maps-container {
     display: flex;
@@ -202,8 +144,13 @@ input {
 }
   
 /* Bikes Table */
+.maps-info h3{
+    color: var(--dark-color);
+    font-size: 18px;
+}
+
 .bikes-table-container {
-    height: 150px; 
+    height: 140px; 
     overflow: hidden;
     border-radius: 5px;
     margin-top: 15px;

@@ -46,7 +46,7 @@ input {
   width: 100%;
   max-width: 1300px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 7px;
 }
 
 .card {
@@ -61,6 +61,7 @@ input {
   background-color: var(--soft-color);
   color: white;
   padding: 15px 40px;
+  height: 75px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -92,6 +93,12 @@ input {
 
 .table-button:hover {
   background-color: rgba(255, 255, 255, 0.2);
+}
+
+.table-button .icon-img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
 }
 
 /* Switch */

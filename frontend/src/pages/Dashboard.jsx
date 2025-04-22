@@ -211,7 +211,7 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
 
     return (
         <div>
-            <h2>Dashboard</h2>
+            <h2>Panel de Control</h2>
             <div className="dashboard-container">
                 <div className="dashboard-card-container">
                     <h3 className="dashboard-card-title">Índice de Confortabilidad Ambiental</h3>
