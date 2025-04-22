@@ -8,9 +8,13 @@ const Login = ({ onLogin }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        const success = onLogin(username, password);
+        if (!username || !password) {
+            setError("Por favor introduce nombre de usuario y contraseña")
+            return
+        }
+        const success = onLogin(username, password)
         if (!success) {
-        setError('Por favor introduce nombre de usuario y contraseña');
+            setError("Usuario o contraseña incorrectos")
         }
     };
 
@@ -24,21 +28,21 @@ const Login = ({ onLogin }) => {
                     <div className="form-group">
                         <label htmlFor="username">Usuario</label>
                         <input
-                        type="text"
-                        id="username"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        placeholder="Introduce tu nombre de usuario"
+                            type="text"
+                            id="username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            placeholder="Introduce tu nombre de usuario"
                         />
                     </div>
                     <div className="form-group">
                         <label htmlFor="password">Contraseña</label>
                         <input
-                        type="password"
-                        id="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Introduce tu contraseña"
+                            type="password"
+                            id="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Introduce tu contraseña"
                         />
                     </div>
                     <button type="submit" style={{ width: '100%' }}>Login</button>

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import DistrictTable from "../components/DistrictTable"
 import '../styles/App.css';
 
-const MainLayout = ({ children, bikeData, toggleHideTestBikes, hideTestBikes }) => {
+const MainLayout = ({ children, bikeData, toggleHideTestBikes, hideTestBikes, onLogout }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const isMapsActive = location.pathname === '/maps';
@@ -19,6 +19,11 @@ const MainLayout = ({ children, bikeData, toggleHideTestBikes, hideTestBikes }) 
 
     const toggleTable = () => {
         setIsTableOpen(!isTableOpen)
+    }
+
+    const handleLogout = () => {
+        onLogout()
+        navigate("/login")
     }
 
     return (
@@ -53,6 +58,9 @@ const MainLayout = ({ children, bikeData, toggleHideTestBikes, hideTestBikes }) 
                             <span className="slider"></span>
                         </label>
                     </div>
+                    <button className="logout-button" onClick={handleLogout}>
+                        Salir
+                    </button>
                 </div>
             </header>
             <main className="container" style={{ marginTop: '20px' }}>

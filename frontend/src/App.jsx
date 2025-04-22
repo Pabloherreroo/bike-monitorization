@@ -30,12 +30,34 @@ function App() {
   ]
   const [activeColors, setActiveColors] = useState(roadConditions.map((c) => c.id))
 
+  const handleLogout = () => {
+    // Actualizar el estado primero y eliminar
+    setIsAuthenticated(false)
+    setIsSuperAdmin(false)
+    localStorage.removeItem("isAuthenticated")
+    localStorage.removeItem("isSuperAdmin")
+  }
+  
   useEffect(() => {
-    const storedAuth = localStorage.getItem("isAuthenticated") === "true"
-    const storedSuperAdmin = localStorage.getItem("isSuperAdmin") === "true"
-    setIsAuthenticated(storedAuth)
-    setIsSuperAdmin(storedSuperAdmin)
-    setLoadingAuth(false)
+    const checkAuth = () => {
+      const storedAuth = localStorage.getItem("isAuthenticated") === "true"
+      const storedSuperAdmin = localStorage.getItem("isSuperAdmin") === "true"
+      if (storedAuth) {
+        setIsAuthenticated(storedAuth);
+        setIsSuperAdmin(storedSuperAdmin);
+      } else {
+        // Si no hay sesión, asegurarse de que no esté autenticado
+        setIsAuthenticated(false);
+        setIsSuperAdmin(false);
+      }
+      setLoadingAuth(false)
+    }
+    checkAuth()
+    // Añadir un event listener para detectar cambios en localStorage para sincronizar el estado entre pestañas
+    window.addEventListener("storage", checkAuth)
+    return () => {
+      window.removeEventListener("storage", checkAuth)
+    }
   }, []);
   
   useEffect(() => {
@@ -69,10 +91,15 @@ function App() {
   }, [bikes, bikeData, hideTestBikes, hiddenBikeIds])
 
   const handleLogin = (username, password) => {
-    // Simple authentication for demo, luego verificar
-    if (username && password) {
+    // Verificar credenciales válidas, superAdmin o admin normal
+    if (
+      (username === "admin" && password === "admin") ||
+      (username === "bici" && password === "bici") ||
+      (username === "superAdmin" && password === "superAdmin")
+    ) {
       setIsAuthenticated(true)
       localStorage.setItem("isAuthenticated", "true")
+
       if (username === "superAdmin" && password === "superAdmin") {
         setIsSuperAdmin(true)
         localStorage.setItem("isSuperAdmin", "true")
@@ -103,7 +130,7 @@ function App() {
   }
 
   if (loadingAuth) {
-    return 
+    return <div>Cargando...</div>
   }
 
   return (
@@ -125,6 +152,7 @@ function App() {
                 bikeData={filteredBikeData}
                 toggleHideTestBikes={toggleHideTestBikes}
                 hideTestBikes={hideTestBikes}
+                onLogout={handleLogout}
               >
                 <Dashboard
                   bikeData={filteredBikeData}
@@ -147,6 +175,7 @@ function App() {
                 bikeData={filteredBikeData}
                 toggleHideTestBikes={toggleHideTestBikes}
                 hideTestBikes={hideTestBikes}
+                onLogout={handleLogout}
               >
                 <Maps
                   bikeData={filteredBikeData}

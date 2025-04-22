@@ -186,3 +186,18 @@ input:checked + .slider:before {
 .test-bikes-button:hover {
   background-color: #6b1212;
 }
+
+/* Logout Botón */
+.logout-button {
+  background-color: var(--dark-color);
+  color: white;
+  padding: 8px 15px;
+  border-radius: 5px;
+  font-size: 14px;
+  margin-left: 10px;
+  transition: background-color 0.2s;
+}
+
+.logout-button:hover {
+  background-color: #7a1515;
+}
