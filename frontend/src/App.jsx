@@ -179,6 +179,7 @@ function App() {
               >
                 <Maps
                   bikeData={filteredBikeData}
+                  bikes={filteredBikes}
                   activeTimeFrame={activeTimeFrame}
                   onTimeFrameChange={handleTimeFrameClick}
                   activeColors={activeColors}
