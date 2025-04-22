@@ -72,11 +72,12 @@ input {
   font-size: 24px;
 }
 
-/* Header Controls */
+/* Header Controls y Botones de iconos */
 .header-controls {
   display: flex;
   align-items: center;
   gap: 15px;
+  position: relative;
 }
 
 .table-button {
@@ -91,7 +92,7 @@ input {
   transition: background-color 0.2s;
 }
 
-.table-button:hover {
+.table-button:hover, .dynamic-test-button:hover {
   background-color: rgba(255, 255, 255, 0.2);
 }
 
@@ -99,6 +100,59 @@ input {
   width: 40px;
   height: 40px;
   object-fit: contain;
+}
+
+.dynamic-test-button .icon-img {
+  width: 35px;
+  height: 35px;
+  object-fit: contain;
+}
+
+.dynamic-test-button {
+  position: relative;
+  background: none;
+  border: none;
+  color: white;
+  padding: 8px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.test-menu {
+  position: absolute;
+  top: 40px; 
+  left: -130px; 
+  margin-top: 0;
+  min-width: 160px;
+  background-color: var(--dark-color); 
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+
+.test-menu button {
+  background-color: transparent;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  color: var(--creamy-white); 
+}
+
+.test-menu button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Switch */

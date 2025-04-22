@@ -2,6 +2,7 @@ import json
 import time
 import requests
 import datetime
+import os
 from collections import defaultdict
 
 # Va a coger 1 dato de cada bici por segundo, ejecuto este fichero a mano
@@ -32,7 +33,8 @@ def post_data_by_bike(file_path, endpoint_url):
         time.sleep(1)
 
 if __name__ == '__main__':
-    endpoint = "http://127.0.0.1:8000/bike_data"  
-    file_path = "realtime_test.json"
+    endpoint = "https://bicicletas-sensorizadas-default-rtdb.europe-west1.firebasedatabase.app/bike_data.json"
+    script_dir = os.path.dirname(os.path.abspath(__file__))  
+    file_path = os.path.join(script_dir, "realtime_test.json")
     post_data_by_bike(file_path, endpoint)
 

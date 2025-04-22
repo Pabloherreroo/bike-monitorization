@@ -21,3 +21,17 @@ export const getBikeData = async () => {
     return [];
   }
 };
+
+export const ejecutarTestDinamico = async () => {
+  const res = await fetch("http://localhost:8000/test_dinamico", {
+    method: "POST",
+  });
+  return await res.json();
+};
+
+export const borrarDatosB2 = async () => {
+  const res = await fetch("http://localhost:8000/borrar_b2", {
+    method: "DELETE",
+  });
+  return await res.json();
+};

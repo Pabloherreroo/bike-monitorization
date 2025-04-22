@@ -6,6 +6,8 @@ import Maps from './pages/Maps';
 import Dashboard from './pages/Dashboard';
 import './styles/App.css';
 import { getBikes, getBikeData } from "./api";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -194,6 +196,7 @@ function App() {
         />
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
+      <ToastContainer position="bottom-right" autoClose={3000} />
     </Router>
   )
 }
