@@ -16,9 +16,9 @@ const MainLayout = ({ children, bikeData, toggleHideTestBikes, hideTestBikes, on
     
     const toggleView = () => {
         if (isMapsActive) {
-        navigate('/dashboard');
+            navigate('/dashboard');
         } else {
-        navigate('/maps');
+            navigate('/maps');
         }
     };
 

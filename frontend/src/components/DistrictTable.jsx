@@ -2,7 +2,7 @@ import { useState, useMemo } from "react"
 import "../styles/DistrictTable.css"
 
 const DistrictTable = ({ bikeData, isOpen, onClose }) => {
-	const [weights, setWeights] = useState({ // valores predefinidos
+	const [weights, setWeights] = useState({ 
 		roads: 45,
 		air: 35,
 		noise: 20,

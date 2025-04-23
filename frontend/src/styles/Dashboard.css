@@ -48,6 +48,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 
 .air-quality-divider {
@@ -199,6 +200,36 @@
   left: 65px;
   z-index: 20;
 }
+
+/* Botón del overlay ambiental */
+.ambiental-overlay-button {
+  position: absolute;
+  bottom: 0px;
+  left: 0px;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  z-index: 10;
+  transition: transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.35);
+}
+
+.ambiental-overlay-button:hover {
+  transform: scale(1.1);
+  background-color: white;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+.ambiental-overlay-button img {
+  width: 25px;
+  height: 25px;
+}
+
 
 /* Ruido */
 .noise-card {
@@ -548,3 +579,4 @@
 .visibility-toggle:hover .eye-icon {
   opacity: 1;
 }
+

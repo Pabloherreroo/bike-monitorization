@@ -1,7 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import '../styles/Dashboard.css';
+import AmbientalPage from "../components/AmbientalPage"
 
 const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBike }) => {
+    const [showAmbientalOverlay, setShowAmbientalOverlay] = useState(false)
     
     const processedData = useMemo(() => {
         // Verificamos si hay datos disponibles y si no predeterminados
@@ -229,6 +231,9 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
                                 <div className="city-name">Bilbao</div>
                                 <div className="city-score">{processedData.airValueBilbao} %</div>
                             </div>
+                            <div className="ambiental-overlay-button" onClick={() => setShowAmbientalOverlay(true)}>
+                                <img src="/src/assets/overlay_ambiental.svg" alt="Ver datos ambientales" />
+                            </div>
                         </div>
                         {bikeData && bikeData.length > 0 ? (
                             <>
@@ -414,6 +419,13 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
                         </div>
                     </div>
                 </div>
+                {showAmbientalOverlay && (
+                    <AmbientalPage
+                        isOpen={showAmbientalOverlay}
+                        onClose={() => setShowAmbientalOverlay(false)}
+                        bikeData={bikeData}
+                    />
+                )}
             </div>
         </div>
     );
