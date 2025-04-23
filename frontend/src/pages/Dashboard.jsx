@@ -27,14 +27,14 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
             };
         }
 
-        // Filtro que ahora actua para los ultimos 30 dias por haber pocos datos
+        // Filtro que ahora actua para los ultimos 90 dias por haber pocos datos
         // En producción estaría pensado para actuar con los datos de 2 días
-        const dosdiasAtras = new Date();
-        dosdiasAtras.setDate(dosdiasAtras.getDate() - 30);
+        const fechaLimite = new Date();
+        fechaLimite.setDate(fechaLimite.getDate() - 90);
         
         const datosFiltrados = bikeData.filter(dato => {
             const fechaDato = new Date(dato.fecha);
-            return fechaDato >= dosdiasAtras;
+            return fechaDato >= fechaLimite;
         });
         
         const airValueBilbao =
