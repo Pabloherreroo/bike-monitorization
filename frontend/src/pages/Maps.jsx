@@ -206,9 +206,9 @@ const Maps = ({ bikeData, bikes, activeTimeFrame, onTimeFrameChange, activeColor
     const roadsGeoJson = useMemo(() => {
         if (!bikeData || bikeData.length === 0) return { type: "FeatureCollection", features: [] };
         
-        // Pongo ultimos 90 dias por poner algo de limite para los datos de carreteras, podría ser menos tiempo
+        // Pongo ultimos 3 meses por poner algo de limite para los datos de carreteras, podría ser menos tiempo
         const fechaLimite = new Date();
-        fechaLimite.setMonth(fechaLimite.getMonth() - 1);
+        fechaLimite.setMonth(fechaLimite.getMonth() - 3);
         const filteredData = bikeData.filter(item => new Date(item.fecha) >= fechaLimite);
 
         // Mapas para búsqueda rápida de condición por puntuación y de id por condicion

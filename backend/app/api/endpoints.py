@@ -104,6 +104,7 @@ def obtener_bikes(db: Session = Depends(get_db)):
     return bikes
 
 
+# FUNCIONALIDADES AVANZADAS --> TEST DINÁMICO
 # Ejecución de test dinámico desde el botón del front
 script_path = os.path.join(os.path.dirname(__file__), "..", "test_data", "realtime_test.py")
 @router.post("/test_dinamico")
