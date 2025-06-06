@@ -1,10 +1,27 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
+from fastapi import Query
 from app import models, schemas, utils
 from app.database import get_db
 import subprocess
 import os
+import re
+from datetime import datetime, timezone, timedelta
+
+def normalizar_fecha(fecha_str):
+    try:
+        fecha = datetime.fromisoformat(fecha_str)
+        if fecha.tzinfo is None:
+            # No tiene zona → asumir +2
+            tz_plus_2 = timezone(timedelta(hours=2))
+            fecha = fecha.replace(tzinfo=tz_plus_2)
+        else:
+            # Convertir a +2 si tiene otra zona
+            fecha = fecha.astimezone(timezone(timedelta(hours=2)))
+        return fecha
+    except:
+        return datetime.now(timezone(timedelta(hours=2)))
 
 router = APIRouter()
 
@@ -32,10 +49,7 @@ def importar_datos_desde_firebase(db: Session = Depends(get_db)):
     for key, data in datos_firebase.items():
         # Convertir fecha a objeto datetime si viene en string
         if isinstance(data.get("fecha"), str):
-            try:
-                data["fecha"] = datetime.fromisoformat(data["fecha"])
-            except:
-                data["fecha"] = datetime.now()
+            data["fecha"] = normalizar_fecha(data["fecha"])
 
         # Comprobar si ya existe este dato (por bike_id y fecha)
         existe = db.query(models.BikeData).filter_by(
@@ -92,11 +106,29 @@ def importar_datos_desde_firebase(db: Session = Depends(get_db)):
     }
 
 
-# Consultas para front
+# Consultas para front: En bike_data meto un parámetro desde para no mandar siempre todos los datos
 @router.get("/bike_data", response_model=list[schemas.BikeData])
-def obtener_bike_data(db: Session = Depends(get_db)):
-    datos = db.query(models.BikeData).all()
+def obtener_bike_data(
+    db: Session = Depends(get_db),
+    desde: str = Query(None)
+):
+    if desde:
+        try:
+            timestamp_limpio = re.sub(r'\.\d+', '', desde.replace('Z', '+00:00'))
+            fecha_desde = datetime.fromisoformat(timestamp_limpio)
+        except ValueError as e:
+            print(f"Error parsing timestamp: {desde}, error: {e}")
+            raise HTTPException(status_code=400, detail=f"Formato de fecha inválido: {desde}")
+        datos = (
+            db.query(models.BikeData)
+            .filter(models.BikeData.fecha >= fecha_desde)
+            .order_by(models.BikeData.fecha)
+            .all()
+        )
+    else:
+        datos = db.query(models.BikeData).order_by(models.BikeData.fecha).all()
     return datos
+
 
 @router.get("/bikes", response_model=list[schemas.Bike])
 def obtener_bikes(db: Session = Depends(get_db)):

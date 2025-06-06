@@ -1,7 +1,7 @@
 import json
 import time
 import requests
-import datetime
+from datetime import datetime, timezone
 import os
 from collections import defaultdict
 
@@ -21,7 +21,7 @@ def post_data_by_bike(file_path, endpoint_url):
         for bike_id, records_list in grouped_records.items():
             if records_list:
                 record = records_list.pop(0)
-                record['fecha'] = datetime.datetime.now().isoformat()
+                record['fecha'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
                 try:
                     response = requests.post(endpoint_url, json=record)
                     print(

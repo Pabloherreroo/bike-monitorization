@@ -62,18 +62,59 @@ function App() {
     }
   }, []);
   
+  // Modificado para coger solo ultimos datos, no siempre pedir todos
   useEffect(() => {
+    let ultimoTimestamp = null;
+
     const fetchData = async () => {
+      console.log('Fetching data...', { ultimoTimestamp });
+      
       const bikesResponse = await getBikes();
-      const bikeDataResponse = await getBikeData();
       setBikes(bikesResponse);
-      setBikeData(bikeDataResponse);
+      console.log('Bikes actualizadas:', bikesResponse.length); //deben ser todas
+
+      // Para bikeData, usamos el timestamp
+      const bikeDataResponse = await getBikeData(ultimoTimestamp);
+      console.log('BikeData recibida:', bikeDataResponse.length);
+
+      if (bikeDataResponse.length >= 0) {
+        if (ultimoTimestamp === null) {
+          setBikeData(bikeDataResponse); // Primera carga
+        } else {
+          // Cargas incrementales: añadir solo los nuevos
+          setBikeData(prevData => {
+            const bikeIdsExistentes = new Set(bikesResponse.map(b => b.bike_id));
+            const datosFiltrados = prevData.filter(d => bikeIdsExistentes.has(d.bike_id));
+            
+            const nuevosUnicos = bikeDataResponse.filter(
+              nuevo => !datosFiltrados.some(
+                existente => existente.bike_id === nuevo.bike_id && existente.fecha === nuevo.fecha
+              )
+            );
+            
+            const resultado = [...datosFiltrados, ...nuevosUnicos];
+            console.log('Datos incrementales:', {
+              anteriores: prevData.length,
+              filtrados: datosFiltrados.length,
+              nuevos: nuevosUnicos.length,
+              total: resultado.length
+            });
+            
+            return resultado;
+          });
+        }
+        
+        // Actualizar timestamp con el dato más reciente
+        ultimoTimestamp = bikeDataResponse[bikeDataResponse.length - 1].fecha;
+        console.log('Nuevo timestamp:', ultimoTimestamp);
+      }
     };
-    // Llamada inicial y luego cada 1s
+
     fetchData();
     const interval = setInterval(fetchData, 1000);
     return () => clearInterval(interval);
   }, []);
+
 
   // Filtrar si boton de test o si icono de superadmin
   useEffect(() => {

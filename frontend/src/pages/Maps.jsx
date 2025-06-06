@@ -1,17 +1,21 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback, memo } from "react";
 import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.heat";
 import "../styles/Maps.css";
 import L from "leaflet"; 
 
-const Heatmap = ({ data }) => {
+const Heatmap = memo(({ data }) => {
     const map = useMap();
+    const heatLayerRef = useRef(null);
 
     useEffect(() => {
         if (!map || !data || data.length === 0) return;
+        // Remover capa anterior si existe
+        if (heatLayerRef.current) {
+            map.removeLayer(heatLayerRef.current);
+        }
 
-        // Gradiente personalizado segun intensidad -> Posible retocar
         const gradient = {
             0.0: 'blue',
             0.4: 'lime',
@@ -21,8 +25,7 @@ const Heatmap = ({ data }) => {
         };
 
         const heatmapPoints = data.map(point => [point.lat, point.lng]);
-
-        const heatLayer = L.heatLayer(heatmapPoints, {
+        heatLayerRef.current = L.heatLayer(heatmapPoints, {
             radius: 15,
             blur: 25,
             maxZoom: 17,
@@ -32,15 +35,21 @@ const Heatmap = ({ data }) => {
         }).addTo(map);
 
         return () => {
-            map.removeLayer(heatLayer);
+            if (heatLayerRef.current) {
+                map.removeLayer(heatLayerRef.current);
+                heatLayerRef.current = null;
+            }
         };
     }, [map, data]);
 
     return null;
-};
+}, (prevProps, nextProps) => {
+    // Solo re-renderizar si los datos realmente han cambiado
+    return prevProps.data === nextProps.data;
+});
 
 // Hace que el mapa se actualice cuando invalido datos de prueba
-const GeoJSONWithUpdates = ({ data, style, geoJsonKey, onFeatureClick }) => {
+const GeoJSONWithUpdates = memo(({ data, style, geoJsonKey, onFeatureClick }) => {
     const map = useMap()
   
     useEffect(() => {
@@ -56,9 +65,15 @@ const GeoJSONWithUpdates = ({ data, style, geoJsonKey, onFeatureClick }) => {
             },
         }}
     />
-}
+}, (prevProps, nextProps) => {
+    return (
+        prevProps.data === nextProps.data &&
+        prevProps.geoJsonKey === nextProps.geoJsonKey &&
+        prevProps.style === nextProps.style
+    );
+});
 
-const RecenterMap = ({ center, shouldRecenter }) => {
+const RecenterMap = memo(({ center, shouldRecenter }) => {
     const map = useMap()
     useEffect(() => {
       if (shouldRecenter) {
@@ -66,7 +81,13 @@ const RecenterMap = ({ center, shouldRecenter }) => {
       }
     }, [center, map, shouldRecenter])
     return null
-}
+}, (prevProps, nextProps) => {
+    return (
+        prevProps.center[0] === nextProps.center[0] &&
+        prevProps.center[1] === nextProps.center[1] &&
+        prevProps.shouldRecenter === nextProps.shouldRecenter
+    );
+});
 
 // Función para calcular la distancia entre dos puntos por coord en metros
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -95,7 +116,7 @@ const formatDate = (dateString) => {
 }
 
 // Componente para el popup -> evitar que se actualice con cada render
-const StaticPopup =  React.memo(({ position, content, isOpen, onClose }) => {
+const StaticPopup =  memo(({ position, content, isOpen, onClose }) => {
     const popupRef = useRef(null);
     const map = useMap();
     
@@ -138,7 +159,7 @@ const StaticPopup =  React.memo(({ position, content, isOpen, onClose }) => {
 });
 
 
-const Maps = ({ bikeData, bikes, activeTimeFrame, onTimeFrameChange, activeColors, onColorChange, roadConditions }) => {
+const Maps = memo(({ bikeData, bikes, activeTimeFrame, onTimeFrameChange, activeColors, onColorChange, roadConditions }) => {
     const [roadsCenterState, setRoadsCenterState] = useState([43.263, -2.935])
     const [heatmapCenterState, setHeatmapCenterState] = useState([43.263, -2.935])
     const [shouldRecenterRoads, setShouldRecenterRoads] = useState(true)
@@ -149,31 +170,8 @@ const Maps = ({ bikeData, bikes, activeTimeFrame, onTimeFrameChange, activeColor
     const [isPopupOpen, setIsPopupOpen] = useState(false)
     const [geoJsonKey, setGeoJsonKey] = useState(0)
 
-    useEffect(() => {
-        setGeoJsonKey((prev) => prev + 1)
-    }, [bikeData, activeTimeFrame, activeColors])
-
-    useEffect(() => {
-        if (bikeData && bikeData.length > 0) {
-            // Solo se recentra la 1ª vez
-            setShouldRecenterRoads(false)
-        }
-    }, [bikeData])
-
-    useEffect(() => {
-        // cada vez que el usuario cambia el filtro
-        setShouldRecenterHeatmap(true);
-    }, [activeTimeFrame]);
-
-    const timeFrames = [
-        { id: '1d', label: '1d' },
-        { id: '1w', label: '1w' },
-        { id: '1m', label: '1m' },
-        { id: 'tot', label: 'Tot' }
-    ];
-
     // Función para calcular la ventana de tiempo según el filtro 
-    const getTimeWindow = () => {
+    const getTimeWindow = useCallback(() => {
         const now = new Date();
         switch (activeTimeFrame) {
             case '1d':
@@ -187,7 +185,7 @@ const Maps = ({ bikeData, bikes, activeTimeFrame, onTimeFrameChange, activeColor
             default:
                 return new Date(now.setDate(now.getDate() - 1));
         }
-    };
+    }, [activeTimeFrame]);
 
     const heatmapData = useMemo(() => {
         if (!bikeData || bikeData.length === 0) return [];
@@ -201,19 +199,26 @@ const Maps = ({ bikeData, bikes, activeTimeFrame, onTimeFrameChange, activeColor
                 lat: parseFloat(item.latitud),
                 lng: parseFloat(item.longitud)
             }));
-    }, [bikeData, activeTimeFrame]);
+    }, [bikeData, getTimeWindow]);
+
+    const conditionMaps = useMemo(() => {
+        const scoreToCondition = new Map(roadConditions.map(c => [c.score, c.condition]));
+        const conditionToColorId = new Map(roadConditions.map(c => [c.condition, c.id]));
+        return { scoreToCondition, conditionToColorId };
+    }, [roadConditions]);
 
     const roadsGeoJson = useMemo(() => {
         if (!bikeData || bikeData.length === 0) return { type: "FeatureCollection", features: [] };
+        const { scoreToCondition, conditionToColorId } = conditionMaps;
         
         // Pongo ultimos 3 meses por poner algo de limite para los datos de carreteras, podría ser menos tiempo
         const fechaLimite = new Date();
         fechaLimite.setMonth(fechaLimite.getMonth() - 3);
         const filteredData = bikeData.filter(item => new Date(item.fecha) >= fechaLimite);
 
-        // Mapas para búsqueda rápida de condición por puntuación y de id por condicion
-        const scoreToCondition = new Map(roadConditions.map(c => [c.score, c.condition]));
-        const conditionToColorId = new Map(roadConditions.map(c => [c.condition, c.id]));
+        const getConditionFromScore = (score) => {
+            return scoreToCondition.get(parseInt(score)) || "good";
+        };
         
         // Ordenar los datos por bike_id y fecha para poder emparejar puntos consecutivos
         const sortedData = [...filteredData]
@@ -223,9 +228,6 @@ const Maps = ({ bikeData, bikes, activeTimeFrame, onTimeFrameChange, activeColor
                 return new Date(a.fecha) - new Date(b.fecha);
             });
 
-        const getConditionFromScore = (score) => {
-            return scoreToCondition.get(parseInt(score)) || "good";
-        };
 
         // Segmentos de carretera 
         const roadSegments = []
@@ -382,85 +384,6 @@ const Maps = ({ bikeData, bikes, activeTimeFrame, onTimeFrameChange, activeColor
         };
     }, [bikeData, activeColors, roadConditions]);
 
-    const handleTimeFrameClick = (timeFrame) => {
-        onTimeFrameChange(timeFrame)
-    };
-
-    const handleColorClick = (colorId) => {
-        onColorChange(colorId)
-    };
-
-    const handleRoadClick = (properties) => {
-        // Si habia un popup, cierro
-        if (isPopupOpen) handleClosePopup();
-
-        
-        // Busca coordenadas para popup
-        const feature = roadsGeoJson.features.find(f => f.properties.time === properties.time);
-        if (!feature) return;
-
-        const [[lng1, lat1], [lng2, lat2]] = feature.geometry.coordinates;
-        setPopupPosition([(lat1 + lat2) / 2, (lng1 + lng2) / 2]);
-            
-        // Crear el contenido HTML del popup
-        const content = `
-            <div class="road-popup">
-                <h4>Datos del ${formatDate(properties.time)}</h4>
-                ${properties.mergedCount > 1 ? `<p>Promedio de ${properties.mergedCount} mediciones</p>` : ''}
-            </div>
-        `;
-        setPopupContent(content);
-        setIsPopupOpen(true);
-    };
-
-    const handleClosePopup = useCallback(() => {
-        setSelectedRoad(null);
-        setIsPopupOpen(false);
-    }, []);
-
-    const activeIndex = timeFrames.findIndex(tf => tf.id === activeTimeFrame);
-
-    const getRoadColor = (condition) => {
-        const roadCondition = roadConditions.find(c => c.condition === condition);
-        return roadCondition ? roadCondition.color : "#000";
-    };
-
-    const calculateCenter = (points, defaultCenter = [43.263, -2.935]) => {
-        if (points.length === 0) return defaultCenter;
-        const sum = points.reduce(
-            (acc, point) => ({
-                lat: acc.lat + point.lat,
-                lng: acc.lng + point.lng,
-            }),
-            { lat: 0, lng: 0 }
-        );
-        return [sum.lat / points.length, sum.lng / points.length];
-    };
-
-    useEffect(() => {
-        // Centro del heatmap
-        if (!shouldRecenterHeatmap) return;
-        const points = heatmapData.map(({ lat, lng }) => ({ lat, lng }));
-        const newCenter = calculateCenter(points);
-        setHeatmapCenterState(newCenter);
-        setShouldRecenterHeatmap(false);
-    }, [heatmapData, shouldRecenterHeatmap]);
-
-    useEffect(() => {
-        // Centro de carreteras (solo para la carga inicial)
-        if (shouldRecenterRoads) {
-          const points = roadsGeoJson.features.map((feature) => {
-            const coords = feature.geometry.coordinates
-            return {
-                lat: (coords[0][1] + coords[1][1]) / 2,
-                lng: (coords[0][0] + coords[1][0]) / 2,
-            }
-          })
-          setRoadsCenterState(calculateCenter(points))
-        }
-    }, [roadsGeoJson, shouldRecenterRoads])
-
-    // Calcular estadísticas de bicicletas para tabla inferior
     const bikeStats = useMemo(() => {
         if (!bikeData || bikeData.length === 0 || !bikes || bikes.length === 0) return []
         const stats = {}
@@ -526,7 +449,114 @@ const Maps = ({ bikeData, bikes, activeTimeFrame, onTimeFrameChange, activeColor
                 const numB = parseInt(b.id.match(/\d+/)[0], 10);
                 return numA - numB;
             })
-    }, [bikeData, bikes])
+    }, [bikeData, bikes]);
+
+    const handleTimeFrameClick = useCallback((timeFrame) => {
+        onTimeFrameChange(timeFrame)
+    }, [onTimeFrameChange]);
+
+    const handleColorClick = useCallback((colorId) => {
+        onColorChange(colorId)
+    }, [onColorChange]);
+
+    const handleRoadClick = useCallback((properties) => {
+        // Si habia un popup, cierro
+        if (isPopupOpen) handleClosePopup();
+        
+        // Busca coordenadas para popup
+        const feature = roadsGeoJson.features.find(f => f.properties.time === properties.time);
+        if (!feature) return;
+
+        const [[lng1, lat1], [lng2, lat2]] = feature.geometry.coordinates;
+        setPopupPosition([(lat1 + lat2) / 2, (lng1 + lng2) / 2]);
+            
+        // Crear el contenido HTML del popup
+        const content = `
+            <div class="road-popup">
+                <h4>Datos del ${formatDate(properties.time)}</h4>
+                ${properties.mergedCount > 1 ? `<p>Promedio de ${properties.mergedCount} mediciones</p>` : ''}
+            </div>
+        `;
+        setPopupContent(content);
+        setIsPopupOpen(true);
+    }, [isPopupOpen, roadsGeoJson.features]);
+
+    const handleClosePopup = useCallback(() => {
+        setSelectedRoad(null);
+        setIsPopupOpen(false);
+    }, []);
+
+    const getRoadColor = useCallback((condition) => {
+        const roadCondition = roadConditions.find(c => c.condition === condition);
+        return roadCondition ? roadCondition.color : "#000";
+    }, [roadConditions]);
+
+    const calculateCenter = useCallback((points, defaultCenter = [43.263, -2.935]) => {
+        if (points.length === 0) return defaultCenter;
+        const sum = points.reduce(
+            (acc, point) => ({
+                lat: acc.lat + point.lat,
+                lng: acc.lng + point.lng,
+            }),
+            { lat: 0, lng: 0 }
+        );
+        return [sum.lat / points.length, sum.lng / points.length];
+    }, []);
+
+    const geoJsonStyle = useCallback((feature) => ({
+        color: getRoadColor(feature.properties.condition),
+        weight: 5,
+        opacity: 0.8,
+    }), [getRoadColor]);
+
+    useEffect(() => {
+        setGeoJsonKey((prev) => prev + 1)
+    }, [bikeData, activeTimeFrame, activeColors])
+
+    useEffect(() => {
+        if (bikeData && bikeData.length > 0) {
+            setShouldRecenterRoads(false)
+        }
+    }, [bikeData])
+
+    useEffect(() => {
+        setShouldRecenterHeatmap(true);
+    }, [activeTimeFrame]);
+
+    useEffect(() => {
+        // Centro del heatmap
+        if (!shouldRecenterHeatmap) return;
+        const points = heatmapData.map(({ lat, lng }) => ({ lat, lng }));
+        const newCenter = calculateCenter(points);
+        setHeatmapCenterState(newCenter);
+        setShouldRecenterHeatmap(false);
+    }, [heatmapData, shouldRecenterHeatmap, calculateCenter]);
+
+    useEffect(() => {
+        // Centro de carreteras
+        if (shouldRecenterRoads) {
+          const points = roadsGeoJson.features.map((feature) => {
+            const coords = feature.geometry.coordinates
+            return {
+                lat: (coords[0][1] + coords[1][1]) / 2,
+                lng: (coords[0][0] + coords[1][0]) / 2,
+            }
+          })
+          setRoadsCenterState(calculateCenter(points))
+        }
+    }, [roadsGeoJson, shouldRecenterRoads, calculateCenter])
+
+    const timeFrames = useMemo(() => [
+        { id: '1d', label: '1d' },
+        { id: '1w', label: '1w' },
+        { id: '1m', label: '1m' },
+        { id: 'tot', label: 'Tot' }
+    ], []);
+
+    const activeIndex = useMemo(() => 
+        timeFrames.findIndex(tf => tf.id === activeTimeFrame), 
+        [timeFrames, activeTimeFrame]
+    );
 
     return (
         <div className="maps-container">
@@ -627,6 +657,14 @@ const Maps = ({ bikeData, bikes, activeTimeFrame, onTimeFrameChange, activeColor
             </div>
         </div>
     );
-};
+}, (prevProps, nextProps) => {
+    return (
+        prevProps.bikeData === nextProps.bikeData &&
+        prevProps.bikes === nextProps.bikes &&
+        prevProps.activeTimeFrame === nextProps.activeTimeFrame &&
+        prevProps.activeColors === nextProps.activeColors &&
+        prevProps.roadConditions === nextProps.roadConditions
+    );
+});
 
 export default Maps;

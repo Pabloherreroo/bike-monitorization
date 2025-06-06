@@ -12,15 +12,21 @@ export const getBikes = async () => {
   }
 };
 
-export const getBikeData = async () => {
+// Modificado para coger solo ultimos datos desde x fecha
+export const getBikeData = async (desde = null) => {
   try {
-    const response = await axios.get(`${API_URL}/bike_data`);
+    let url = `${API_URL}/bike_data`;
+    if (desde) {
+      url += `?desde=${encodeURIComponent(desde)}`;
+    }
+    const response = await axios.get(url);
     return response.data;
   } catch (error) {
     console.error("Error fetching bike data:", error);
     return [];
   }
 };
+
 
 export const ejecutarTestDinamico = async () => {
   const res = await fetch("http://localhost:8000/test_dinamico", {
