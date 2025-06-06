@@ -6,6 +6,11 @@ Este sistema permite la administración y monitorización en tiempo real de bici
 - **Frontend**: React (Vite) para ofrecer una interfaz moderna y responsive.
 - **Base de datos**: PostgreSQL con la extensión TimescaleDB para el almacenamiento eficiente de series temporales de datos provenientes de los sensores.
 
+- **Carpeta "extra"**: Contiene los datos de prueba recogidos por Bilbao, además del script utilizado para convertirlos a SQL modificando algunos de sus valores por franjas temporales.
+
+## 🎥 Demo del proyecto
+[Haz clic aquí para ver el video demo](https://drive.google.com/file/d/17VTEmFS7qz3Y4JcumwTDGB0knJZE6D3y/view?usp=drive_link)
+
 ## Ejecución con Docker
 El proyecto está completamente dockerizado para facilitar su despliegue. Para ejecutar el sistema completo:
 ```sh
