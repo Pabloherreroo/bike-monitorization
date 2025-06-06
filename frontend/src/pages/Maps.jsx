@@ -5,6 +5,8 @@ import "leaflet.heat";
 import "../styles/Maps.css";
 import L from "leaflet"; 
 
+const distanceCache = new Map();
+
 const Heatmap = memo(({ data }) => {
     const map = useMap();
     const heatLayerRef = useRef(null);
@@ -24,7 +26,16 @@ const Heatmap = memo(({ data }) => {
             1.0: 'red'
         };
 
-        const heatmapPoints = data.map(point => [point.lat, point.lng]);
+        let heatmapPoints;
+        if (data.length > 5000) {
+            // Tomar cada N puntos para reducir la carga
+            const step = Math.ceil(data.length / 3000);
+            heatmapPoints = data.filter((_, index) => index % step === 0)
+                               .map(point => [point.lat, point.lng]);
+        } else {
+            heatmapPoints = data.map(point => [point.lat, point.lng]);
+        }
+
         heatLayerRef.current = L.heatLayer(heatmapPoints, {
             radius: 15,
             blur: 25,
@@ -43,54 +54,59 @@ const Heatmap = memo(({ data }) => {
     }, [map, data]);
 
     return null;
-}, (prevProps, nextProps) => {
-    // Solo re-renderizar si los datos realmente han cambiado
-    return prevProps.data === nextProps.data;
 });
 
 // Hace que el mapa se actualice cuando invalido datos de prueba
-const GeoJSONWithUpdates = memo(({ data, style, geoJsonKey, onFeatureClick }) => {
-    const map = useMap()
+const GeoJSONWithUpdates = memo(({ data, style, onFeatureClick }) => {
+    const map = useMap();
+    const geoJsonRef = useRef(null);
   
     useEffect(() => {
-      if (map) {
-        map.invalidateSize()
-      }
-    }, [data, map])
+        if (map) {
+            map.invalidateSize();
+        }
+    }, [data, map]);
+
+    // Usar ref para evitar recrear el GeoJSON innecesariamente
+    useEffect(() => {
+        if (geoJsonRef.current) {
+            geoJsonRef.current.clearLayers();
+            geoJsonRef.current.addData(data);
+        }
+    }, [data]);
   
-    return <GeoJSON key={geoJsonKey} data={data} style={style} 
-        eventHandlers={{
-            click: (e) => {
-                onFeatureClick(e.layer.feature.properties)
-            },
-        }}
-    />
-}, (prevProps, nextProps) => {
     return (
-        prevProps.data === nextProps.data &&
-        prevProps.geoJsonKey === nextProps.geoJsonKey &&
-        prevProps.style === nextProps.style
+        <GeoJSON 
+            ref={geoJsonRef}
+            data={data} 
+            style={style} 
+            eventHandlers={{
+                click: (e) => {
+                    onFeatureClick(e.layer.feature.properties);
+                },
+            }}
+        />
     );
 });
 
 const RecenterMap = memo(({ center, shouldRecenter }) => {
-    const map = useMap()
+    const map = useMap();
     useEffect(() => {
-      if (shouldRecenter) {
-        map.setView(center, 12)
-      }
-    }, [center, map, shouldRecenter])
-    return null
-}, (prevProps, nextProps) => {
-    return (
-        prevProps.center[0] === nextProps.center[0] &&
-        prevProps.center[1] === nextProps.center[1] &&
-        prevProps.shouldRecenter === nextProps.shouldRecenter
-    );
+        if (shouldRecenter) {
+            map.setView(center, 12);
+        }
+    }, [center, map, shouldRecenter]);
+    return null;
 });
 
-// Función para calcular la distancia entre dos puntos por coord en metros
+// Función para calcular la distancia entre dos puntos por coord en metros: usa cache
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const key = `${lat1.toFixed(6)},${lon1.toFixed(6)},${lat2.toFixed(6)},${lon2.toFixed(6)}`;
+    
+    if (distanceCache.has(key)) {
+        return distanceCache.get(key);
+    }
+
     const R = 6371e3 // Radio de la Tierra en metros
     const φ1 = (lat1 * Math.PI) / 180
     const φ2 = (lat2 * Math.PI) / 180
@@ -100,9 +116,107 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
     const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   
-    return R * c // Distancia
+    const distance = R * c;
+    distanceCache.set(key, distance);
+    
+    // Limpiar cache si crece demasiado
+    if (distanceCache.size > 10000) {
+        const keysToDelete = Array.from(distanceCache.keys()).slice(0, 5000);
+        keysToDelete.forEach(k => distanceCache.delete(k));
+    }
+    
+    return distance;
   }
   
+// Función para agrupar puntos cercanos usando grid espacial: Sustituyendo al procesamiento anterior
+const groupNearbySegments = (segments) => {
+    const GRID_SIZE = 0.0001; // ~10 metros
+    const grid = new Map();
+    
+    // Asigna cada segmento a una celda del grid
+    segments.forEach((segment, index) => {
+        const gridX = Math.floor(segment.start.lat / GRID_SIZE);
+        const gridY = Math.floor(segment.start.lng / GRID_SIZE);
+        const key = `${gridX},${gridY}`;
+        
+        if (!grid.has(key)) {
+            grid.set(key, []);
+        }
+        grid.get(key).push({ ...segment, originalIndex: index });
+    });
+    
+    const mergedSegments = [];
+    const processedIndices = new Set();
+    
+    // Procesa cada celda
+    for (const cellSegments of grid.values()) {
+        if (cellSegments.length === 0) continue;
+        
+        // Agrupa segmentos similares en celda
+        for (let i = 0; i < cellSegments.length; i++) {
+            if (processedIndices.has(cellSegments[i].originalIndex)) continue;
+            
+            const currentSegment = cellSegments[i];
+            const similarSegments = [currentSegment];
+            processedIndices.add(currentSegment.originalIndex);
+            
+            // Solo comparar con otros segmentos en la misma celda
+            for (let j = i + 1; j < cellSegments.length; j++) {
+                if (processedIndices.has(cellSegments[j].originalIndex)) continue;
+                
+                const compareSegment = cellSegments[j];
+                
+                const dist = calculateDistance(
+                    currentSegment.start.lat,
+                    currentSegment.start.lng,
+                    compareSegment.start.lat,
+                    compareSegment.start.lng
+                );
+                
+                if (dist < 10) { // 10 metros
+                    const isSameBike = currentSegment.bike_id === compareSegment.bike_id;
+                    const timeDiff = Math.abs(new Date(currentSegment.time) - new Date(compareSegment.time)) / 1000;
+                    
+                    if (!isSameBike || timeDiff > 30) {
+                        similarSegments.push(compareSegment);
+                        processedIndices.add(compareSegment.originalIndex);
+                    }
+                }
+            }
+            
+            // Crea segmento promediado
+            if (similarSegments.length > 0) {
+                const avgStart = {
+                    lat: similarSegments.reduce((sum, seg) => sum + seg.start.lat, 0) / similarSegments.length,
+                    lng: similarSegments.reduce((sum, seg) => sum + seg.start.lng, 0) / similarSegments.length,
+                };
+                
+                const avgEnd = {
+                    lat: similarSegments.reduce((sum, seg) => sum + seg.end.lat, 0) / similarSegments.length,
+                    lng: similarSegments.reduce((sum, seg) => sum + seg.end.lng, 0) / similarSegments.length,
+                };
+                
+                const avgScore = Math.round(similarSegments.reduce((sum, seg) => sum + seg.score, 0) / similarSegments.length);
+                
+                const latestTime = similarSegments.reduce((latest, seg) => {
+                    return new Date(seg.time) > new Date(latest) ? seg.time : latest;
+                }, similarSegments[0].time);
+                
+                mergedSegments.push({
+                    start: avgStart,
+                    end: avgEnd,
+                    condition: similarSegments[0].condition,
+                    time: latestTime,
+                    mergedCount: similarSegments.length,
+                    score: avgScore
+                });
+            }
+        }
+    }
+    
+    return mergedSegments;
+};
+
 // Función para formatear la fecha para el popup
 const formatDate = (dateString) => {
     const date = new Date(dateString)
@@ -121,7 +235,7 @@ const StaticPopup =  memo(({ position, content, isOpen, onClose }) => {
     const map = useMap();
     
     useEffect(() => {
-        // Cerrar el popup si debe hacerse
+        // Cerrarlo
         if (!isOpen) {
             if (popupRef.current) {
                 map.closePopup(popupRef.current);
@@ -133,17 +247,15 @@ const StaticPopup =  memo(({ position, content, isOpen, onClose }) => {
         // Si ya hay un popup abierto, lo dejo
         if (popupRef.current) return;
 
-        // Validar posición y contenido
         if (!position || !content) return;
             
-        // Crear y abrir el popup
+        // Crearlo y abrirlo
         const popup = L.popup({ closeOnClick: false })
             .setLatLng(position)
             .setContent(content)
             .openOn(map);
 
         popupRef.current = popup;
-        // Sólo para limpiar la variable y disparar onClose
         popup.on("remove", onClose);
 
         return () => {
@@ -153,22 +265,22 @@ const StaticPopup =  memo(({ position, content, isOpen, onClose }) => {
             popupRef.current = null;
             }
         };
-    }, [isOpen, position, content, map]);
+    }, [isOpen, position, content, map, onClose]);
     
     return null;
 });
 
 
 const Maps = memo(({ bikeData, bikes, activeTimeFrame, onTimeFrameChange, activeColors, onColorChange, roadConditions }) => {
-    const [roadsCenterState, setRoadsCenterState] = useState([43.263, -2.935])
-    const [heatmapCenterState, setHeatmapCenterState] = useState([43.263, -2.935])
-    const [shouldRecenterRoads, setShouldRecenterRoads] = useState(true)
-    const [shouldRecenterHeatmap, setShouldRecenterHeatmap] = useState(true)
-    const [selectedRoad, setSelectedRoad] = useState(null)
-    const [popupPosition, setPopupPosition] = useState(null)
-    const [popupContent, setPopupContent] = useState('')
-    const [isPopupOpen, setIsPopupOpen] = useState(false)
-    const [geoJsonKey, setGeoJsonKey] = useState(0)
+    const [roadsCenterState, setRoadsCenterState] = useState([43.263, -2.935]);
+    const [heatmapCenterState, setHeatmapCenterState] = useState([43.263, -2.935]);
+    const [shouldRecenterRoads, setShouldRecenterRoads] = useState(true);
+    const [shouldRecenterHeatmap, setShouldRecenterHeatmap] = useState(true);
+    const [popupPosition, setPopupPosition] = useState(null);
+    const [popupContent, setPopupContent] = useState('');
+    const [isPopupOpen, setIsPopupOpen] = useState(false);
+
+    const processedDataCache = useRef(new Map());
 
     // Función para calcular la ventana de tiempo según el filtro 
     const getTimeWindow = useCallback(() => {
@@ -190,16 +302,24 @@ const Maps = memo(({ bikeData, bikes, activeTimeFrame, onTimeFrameChange, active
     const heatmapData = useMemo(() => {
         if (!bikeData || bikeData.length === 0) return [];
         
+        const cacheKey = `heatmap-${activeTimeFrame}`;
+        if (processedDataCache.current.has(cacheKey)) {
+            return processedDataCache.current.get(cacheKey);
+        }
+        
         const timeWindow = getTimeWindow();
         const filteredData = bikeData.filter(item => new Date(item.fecha) >= timeWindow);
         
-        return filteredData
+        const result = filteredData
             .filter(item => item.latitud && item.longitud)
             .map(item => ({
                 lat: parseFloat(item.latitud),
                 lng: parseFloat(item.longitud)
             }));
-    }, [bikeData, getTimeWindow]);
+        
+        processedDataCache.current.set(cacheKey, result);
+        return result;
+    }, [bikeData, getTimeWindow, activeTimeFrame]);
 
     const conditionMaps = useMemo(() => {
         const scoreToCondition = new Map(roadConditions.map(c => [c.score, c.condition]));
@@ -209,9 +329,15 @@ const Maps = memo(({ bikeData, bikes, activeTimeFrame, onTimeFrameChange, active
 
     const roadsGeoJson = useMemo(() => {
         if (!bikeData || bikeData.length === 0) return { type: "FeatureCollection", features: [] };
+        
+        const cacheKey = `roads-${activeColors.join(',')}-${bikeData.length}`;
+        if (processedDataCache.current.has(cacheKey)) {
+            return processedDataCache.current.get(cacheKey);
+        }
+        
         const { scoreToCondition, conditionToColorId } = conditionMaps;
         
-        // Pongo ultimos 3 meses por poner algo de limite para los datos de carreteras, podría ser menos tiempo
+        // Pongo ultimos 3 meses para que se vean todos los de prueba
         const fechaLimite = new Date();
         fechaLimite.setMonth(fechaLimite.getMonth() - 3);
         const filteredData = bikeData.filter(item => new Date(item.fecha) >= fechaLimite);
@@ -219,17 +345,24 @@ const Maps = memo(({ bikeData, bikes, activeTimeFrame, onTimeFrameChange, active
         const getConditionFromScore = (score) => {
             return scoreToCondition.get(parseInt(score)) || "good";
         };
+
+        // Limitar el número de puntos para procesado: Hay 8k que nunca llega con prueba pero por si se necesita ajustar
+        const maxPoints = 8000;
+        let dataToProcess = filteredData
+            .filter(item => item.latitud && item.longitud && item.puntuacion_road);
+        
+        if (dataToProcess.length > maxPoints) {
+            // Submuestreo inteligente: tomar puntos distribuidos temporalmente
+            const step = Math.ceil(dataToProcess.length / maxPoints);
+            dataToProcess = dataToProcess.filter((_, index) => index % step === 0);
+        }
         
         // Ordenar los datos por bike_id y fecha para poder emparejar puntos consecutivos
-        const sortedData = [...filteredData]
-            .filter(item => item.latitud && item.longitud && item.puntuacion_road)
-            .sort((a, b) => {
-                if (a.bike_id !== b.bike_id) return a.bike_id.localeCompare(b.bike_id);
-                return new Date(a.fecha) - new Date(b.fecha);
-            });
+        const sortedData = dataToProcess.sort((a, b) => {
+            if (a.bike_id !== b.bike_id) return a.bike_id.localeCompare(b.bike_id);
+            return new Date(a.fecha) - new Date(b.fecha);
+        });
 
-
-        // Segmentos de carretera 
         const roadSegments = []
         for (let i = 1; i < sortedData.length; i++) {
             const currentPoint = sortedData[i];
@@ -256,111 +389,16 @@ const Maps = memo(({ bikeData, bikes, activeTimeFrame, onTimeFrameChange, active
                             bike_id: currentPoint.bike_id,
                             time: currentPoint.fecha,
                             score: Number.parseInt(currentPoint.puntuacion_road),
-                        })
+                        });
                     }
                 }
             }
         }
         
         // Agrupar segmentos cercanos de diferentes bicis o de la misma bici con más de 30s de diferencia
-        const mergedSegments = []
-        const processedIndices = new Set()
+        const mergedSegments = groupNearbySegments(roadSegments);
 
-        for (let i = 0; i < roadSegments.length; i++) {
-            if (processedIndices.has(i)) continue
-
-            const currentSegment = roadSegments[i]
-            const similarSegments = [currentSegment]
-            processedIndices.add(i)
-
-            for (let j = i + 1; j < roadSegments.length; j++) {
-                if (processedIndices.has(j)) continue
-
-                const compareSegment = roadSegments[j]
-
-                // Calcular distancias entre los puntos de inicio y fin
-                const startStartDist = calculateDistance(
-                    currentSegment.start.lat,
-                    currentSegment.start.lng,
-                    compareSegment.start.lat,
-                    compareSegment.start.lng,
-                )
-
-                const endEndDist = calculateDistance(
-                    currentSegment.end.lat,
-                    currentSegment.end.lng,
-                    compareSegment.end.lat,
-                    compareSegment.end.lng,
-                )
-
-                const startEndDist = calculateDistance(
-                    currentSegment.start.lat,
-                    currentSegment.start.lng,
-                    compareSegment.end.lat,
-                    compareSegment.end.lng,
-                )
-
-                const endStartDist = calculateDistance(
-                    currentSegment.end.lat,
-                    currentSegment.end.lng,
-                    compareSegment.start.lat,
-                    compareSegment.start.lng,
-                )
-
-                // Si los puntos están lo suficientemente cerca (10 metros) y van en cualquier sentido
-                const isNearby = (startStartDist < 10 && endEndDist < 10) || (startEndDist < 10 && endStartDist < 10)
-
-                // Verificar si son de bicis distintas o de la misma bici con más de 30s de diferencia
-                const isSameBike = currentSegment.bike_id === compareSegment.bike_id
-                const timeDiff = Math.abs(new Date(currentSegment.time) - new Date(compareSegment.time)) / 1000
-                const isDifferentTimeOrBike = !isSameBike || (isSameBike && timeDiff > 30)
-
-                if (isNearby && isDifferentTimeOrBike) {
-                    similarSegments.push(compareSegment)
-                    processedIndices.add(j)
-                }
-            }
-
-            // Promedio de segmentos similares y su valor de roadCondition
-            if (similarSegments.length > 0) {
-                const avgStart = {
-                    lat: similarSegments.reduce((sum, seg) => sum + seg.start.lat, 0) / similarSegments.length,
-                    lng: similarSegments.reduce((sum, seg) => sum + seg.start.lng, 0) / similarSegments.length,
-                }
-
-                const avgEnd = {
-                    lat: similarSegments.reduce((sum, seg) => sum + seg.end.lat, 0) / similarSegments.length,
-                    lng: similarSegments.reduce((sum, seg) => sum + seg.end.lng, 0) / similarSegments.length,
-                }
-
-                const avgScore = Math.round(similarSegments.reduce((sum, seg) => sum + seg.score, 0) / similarSegments.length)
-
-                const avgCondition = getConditionFromScore(avgScore)
-
-                // Usar fecha más reciente
-                const latestTime = similarSegments.reduce((latest, seg) => {
-                    return new Date(seg.time) > new Date(latest) ? seg.time : latest
-                }, similarSegments[0].time)
-
-                // Guardar info sobre segmentos promediados
-                const mergedInfo = similarSegments.map((seg) => ({
-                    bike_id: seg.bike_id,
-                    time: seg.time,
-                    score: seg.score,
-                }))
-
-                mergedSegments.push({
-                start: avgStart,
-                end: avgEnd,
-                condition: avgCondition,
-                time: latestTime,
-                mergedCount: similarSegments.length,
-                mergedInfo: mergedInfo,
-                })
-            }
-        }
-
-        // Convertir los segmentos a GeoJSON
+        // Convertir a GeoJSON
         const roadFeatures = mergedSegments.map((segment) => ({
             type: "Feature",
             geometry: {
@@ -374,15 +412,25 @@ const Maps = memo(({ bikeData, bikes, activeTimeFrame, onTimeFrameChange, active
                 condition: segment.condition,
                 time: segment.time,
                 mergedCount: segment.mergedCount,
-                mergedInfo: segment.mergedInfo,
             },
-        }))
+        }));
 
-        return {
+        const result = {
             type: "FeatureCollection",
             features: roadFeatures
         };
-    }, [bikeData, activeColors, roadConditions]);
+        
+        processedDataCache.current.set(cacheKey, result);
+        // Limpiar cache si crece demasiado
+        if (processedDataCache.current.size > 20) {
+            const oldestKeys = Array.from(processedDataCache.current.keys()).slice(0, 10);
+            oldestKeys.forEach(key => processedDataCache.current.delete(key));
+        }
+        
+        return result;
+    }, [bikeData, activeColors, conditionMaps]);
+
+       
 
     const bikeStats = useMemo(() => {
         if (!bikeData || bikeData.length === 0 || !bikes || bikes.length === 0) return []
@@ -439,12 +487,12 @@ const Maps = memo(({ bikeData, bikes, activeTimeFrame, onTimeFrameChange, active
                 const prefixA = a.id.match(/^[A-Za-z]+/)[0];
                 const prefixB = b.id.match(/^[A-Za-z]+/)[0];
                 
-                // Si los prefijos son diferentes, ordenamos por prefijo
+                // Si los prefijos son diferentes, ordeno por prefijo
                 if (prefixA !== prefixB) {
                     return prefixA.localeCompare(prefixB);
                 }
                 
-                // Si los prefijos son iguales, comparamos los números
+                // Si los prefijos son iguales, comparo los números
                 const numA = parseInt(a.id.match(/\d+/)[0], 10);
                 const numB = parseInt(b.id.match(/\d+/)[0], 10);
                 return numA - numB;
@@ -482,7 +530,6 @@ const Maps = memo(({ bikeData, bikes, activeTimeFrame, onTimeFrameChange, active
     }, [isPopupOpen, roadsGeoJson.features]);
 
     const handleClosePopup = useCallback(() => {
-        setSelectedRoad(null);
         setIsPopupOpen(false);
     }, []);
 
@@ -508,10 +555,6 @@ const Maps = memo(({ bikeData, bikes, activeTimeFrame, onTimeFrameChange, active
         weight: 5,
         opacity: 0.8,
     }), [getRoadColor]);
-
-    useEffect(() => {
-        setGeoJsonKey((prev) => prev + 1)
-    }, [bikeData, activeTimeFrame, activeColors])
 
     useEffect(() => {
         if (bikeData && bikeData.length > 0) {
@@ -596,12 +639,7 @@ const Maps = memo(({ bikeData, bikes, activeTimeFrame, onTimeFrameChange, active
                         <RecenterMap center={roadsCenterState} shouldRecenter={shouldRecenterRoads} />
                         <GeoJSONWithUpdates
                             data={roadsGeoJson}
-                            geoJsonKey={geoJsonKey}
-                            style={(feature) => ({
-                                color: getRoadColor(feature.properties.condition),
-                                weight: 5,
-                                opacity: 0.8,
-                            })}
+                            style={geoJsonStyle}
                             onFeatureClick={handleRoadClick}
                         />
                         {/* Creo un popup estático que no se actualice con cada render */}
@@ -656,14 +694,6 @@ const Maps = memo(({ bikeData, bikes, activeTimeFrame, onTimeFrameChange, active
                 </div>
             </div>
         </div>
-    );
-}, (prevProps, nextProps) => {
-    return (
-        prevProps.bikeData === nextProps.bikeData &&
-        prevProps.bikes === nextProps.bikes &&
-        prevProps.activeTimeFrame === nextProps.activeTimeFrame &&
-        prevProps.activeColors === nextProps.activeColors &&
-        prevProps.roadConditions === nextProps.roadConditions
     );
 });
 
