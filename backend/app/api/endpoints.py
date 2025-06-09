@@ -25,17 +25,6 @@ def normalizar_fecha(fecha_str):
 
 router = APIRouter()
 
-# Temporal, para render
-@router.get("/test_firebase")
-def test_firebase():
-    import requests
-    try:
-        res = requests.get("https://bicicletas-sensorizadas-default-rtdb.europe-west1.firebasedatabase.app/bike_data.json", timeout=10)
-        res.raise_for_status()
-        return {"ok": True, "data": res.json()}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
-
 # Endpoint para importar desde firebase, hace todas las validaciones e inserta a BD
 @router.post("/importar_firebase", response_model=dict)
 def importar_datos_desde_firebase(db: Session = Depends(get_db)):
@@ -44,11 +33,7 @@ def importar_datos_desde_firebase(db: Session = Depends(get_db)):
     FIREBASE_URL = "https://bicicletas-sensorizadas-default-rtdb.europe-west1.firebasedatabase.app/bike_data.json"
 
     try:
-        response = requests.get(
-            FIREBASE_URL,
-            timeout=10,
-            headers={"Content-Type": "application/json"}
-        )
+        response = requests.get(FIREBASE_URL)
         response.raise_for_status()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"No se pudo acceder a Firebase: {str(e)}")

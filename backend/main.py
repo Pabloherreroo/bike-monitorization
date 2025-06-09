@@ -4,6 +4,7 @@ import requests
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import endpoints
+from app.api.endpoints import importar_datos_desde_firebase
 from app.database import get_db
 from app.status_checker import start_status_checker
 
@@ -26,15 +27,13 @@ app.include_router(endpoints.router)
 
 # Llamada a endpoint de importación de datos
 def importar_datos_periodicamente():
+    db = next(get_db())
     while True:
         try:
-            response = requests.post("http://localhost:8000/importar_firebase")
-            if response.status_code == 200:
-                print(f"Datos importados exitosamente: {response.json()}")
-            else:
-                print(f"Error en la importación: {response.status_code}")
+            resultado = importar_datos_desde_firebase(db)
+            print(f"Datos importados exitosamente: {resultado}")
         except Exception as e:
-            print(f"Error al hacer la petición: {e}")
+            print(f"Error en la importación: {e}")
 
         time.sleep(1)
 
