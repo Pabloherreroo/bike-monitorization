@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://127.0.0.1:8000" : "https://backend-hxfg.onrender.com");
 
 export const getBikes = async () => {
   try {
@@ -29,14 +29,14 @@ export const getBikeData = async (desde = null) => {
 
 
 export const ejecutarTestDinamico = async () => {
-  const res = await fetch("http://localhost:8000/test_dinamico", {
+  const res = await fetch(`${API_URL}/test_dinamico`, {
     method: "POST",
   });
   return await res.json();
 };
 
 export const borrarDatosB2 = async () => {
-  const res = await fetch("http://localhost:8000/borrar_b2", {
+  const res = await fetch(`${API_URL}/borrar_b2`, {
     method: "DELETE",
   });
   return await res.json();
