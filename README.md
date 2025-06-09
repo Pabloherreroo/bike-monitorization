@@ -5,11 +5,15 @@ Este sistema permite la administración y monitorización en tiempo real de bici
 - **Backend**: FastAPI (Python) para recibir datos de los sensores y manejar la autenticación de usuarios.
 - **Frontend**: React (Vite) para ofrecer una interfaz moderna y responsive.
 - **Base de datos**: PostgreSQL con la extensión TimescaleDB para el almacenamiento eficiente de series temporales de datos provenientes de los sensores.
-
 - **Carpeta "extra"**: Contiene los datos de prueba recogidos por Bilbao, además del script utilizado para convertirlos a SQL modificando algunos de sus valores por franjas temporales.
 
 ## 🎥 Demo del proyecto
-[Haz clic aquí para ver el video demo](https://drive.google.com/file/d/17VTEmFS7qz3Y4JcumwTDGB0knJZE6D3y/view?usp=drive_link)
+[Enlace al video demo en YouTube](https://youtu.be/I31GYJfvUPA)
+
+## Deployment con Render
+Se puede acceder a la interfaz de la página web en el siguiente dominio:
+https://frontend-f226.onrender.com  
+El servidor backend se encuentra en: https://backend-hxfg.onrender.com  
 
 ## Ejecución con Docker
 El proyecto está completamente dockerizado para facilitar su despliegue. Para ejecutar el sistema completo:
