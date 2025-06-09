@@ -1,6 +1,22 @@
 import { useMemo, useState } from "react";
 import '../styles/Dashboard.css';
 import AmbientalPage from "../components/AmbientalPage"
+import solIcon from '../assets/sol.png';
+import solnubeIcon from '../assets/solnube.png';
+import solhorizonteIcon from '../assets/sol_horizonte.png';
+import medialunaIcon from '../assets/media_luna.png';
+import lunallenaIcon from '../assets/luna_llena.png';
+import noluzIcon from '../assets/no_datos_luz.png';
+import overlayambientalIcon from '../assets/overlay_ambiental.svg';
+
+const imageMap = {
+    'sol.png': solIcon,
+    'solnube.png': solnubeIcon,
+    'sol_horizonte.png': solhorizonteIcon,
+    'media_luna.png': medialunaIcon,
+    'luna_llena.png': lunallenaIcon,
+    'no_datos_luz.png': noluzIcon,
+};
 
 const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBike }) => {
     const [showAmbientalOverlay, setShowAmbientalOverlay] = useState(false)
@@ -232,7 +248,7 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
                                 <div className="city-score">{processedData.airValueBilbao} %</div>
                             </div>
                             <div className="ambiental-overlay-button" onClick={() => setShowAmbientalOverlay(true)}>
-                                <img src="/src/assets/overlay_ambiental.svg" alt="Ver datos ambientales" />
+                                <img src={overlayambientalIcon} alt="Ver datos ambientales" />
                             </div>
                         </div>
                         {bikeData && bikeData.length > 0 ? (
@@ -336,7 +352,7 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
                         {processedData.lightData && processedData.lightData.hasData ? (
                             <div className={`light-content ${processedData.lightData.lightClass}`}>
                                 <div className="light-icon">
-                                    <img src={`/src/assets/${processedData.lightData.lightImage}`} alt="Indicador de luz" />
+                                    <img src={imageMap[processedData.lightData.lightImage]} alt="Indicador de luz" />
                                 </div>
                                 <div className="light-category">{processedData.lightData.lightCategory}</div>
                                 <div className="light-value">
@@ -346,7 +362,7 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
                         ) : (
                             <div className="no-light-data">
                                 <div className="light-icon">
-                                    <img src="/src/assets/no_datos_luz.png" alt="No hay datos de luz" />
+                                    <img src={noluzIcon} alt="No hay datos de luz" />
                                 </div>
                                 <p className="no-light-message">No se puede mostrar el nivel actual de luz por falta de datos</p>
                             </div>

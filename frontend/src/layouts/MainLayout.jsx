@@ -5,6 +5,9 @@ import '../styles/App.css';
 import { ejecutarTestDinamico, borrarDatosB2 } from "../api";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import tablaIcon from '../assets/tabla.png';
+import varitaIcon from '../assets/varita.png';
+
 
 const MainLayout = ({ children, bikeData, toggleHideTestBikes, hideTestBikes, onLogout }) => {
     const navigate = useNavigate();
@@ -74,7 +77,7 @@ const MainLayout = ({ children, bikeData, toggleHideTestBikes, hideTestBikes, on
                 <div className="header-controls">
                     <button className="dynamic-test-button" onClick={() => setMostrarMenuPruebas(!mostrarMenuPruebas)} title="Ejecutar/Borrar test dinámico">
                         <img
-                            src="/src/assets/varita.png"
+                            src={varitaIcon}
                             alt="Icono tests dinámicos"
                             className="icon-img"
                         />
@@ -90,7 +93,7 @@ const MainLayout = ({ children, bikeData, toggleHideTestBikes, hideTestBikes, on
                     </button>
                     <button className="table-button" onClick={toggleTable} title="Ver evaluación de distritos">
                         <img
-                            src="/src/assets/tabla.png"
+                            src={tablaIcon}
                             alt="Icono tabla"
                             className="icon-img"
                         />
