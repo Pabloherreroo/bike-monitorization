@@ -9,6 +9,8 @@ import { getBikes, getBikeData } from "./api";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+console.log("API_URL:", import.meta.env.VITE_API_URL);
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)

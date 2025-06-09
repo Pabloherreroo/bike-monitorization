@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://127.0.0.1:8000" : "https://backend-hxfg.onrender.com");
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const getBikes = async () => {
   try {
