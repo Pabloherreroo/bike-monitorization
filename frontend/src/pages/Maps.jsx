@@ -37,9 +37,9 @@ const Heatmap = memo(({ data }) => {
         }
 
         heatLayerRef.current = L.heatLayer(heatmapPoints, {
-            radius: 15,
+            radius: 12,
             blur: 25,
-            maxZoom: 17,
+            maxZoom: 18,
             max: 1,          
             minOpacity: 0.3,
             gradient: gradient,  
