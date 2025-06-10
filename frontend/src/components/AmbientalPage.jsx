@@ -363,7 +363,7 @@ const AmbientalPage = ({ isOpen, onClose, bikeData }) => {
                                     <XAxis dataKey="date" tickFormatter={formatDate} tick={{ fontSize: 12 }} />
                                     <YAxis domain={calculateYDomain(processedData.dailyData, "calidad_ambiental")} />
                                     <Tooltip
-                                        formatter={(value) => [`${value}%`, "calidad_ambiental"]}
+                                        formatter={(value) => [`${value}%`, "Calidad ambiental"]}
                                         labelFormatter={(label) => formatDate(label)}
                                     />
                                     <Line
