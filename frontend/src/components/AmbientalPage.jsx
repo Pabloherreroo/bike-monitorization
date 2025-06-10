@@ -361,7 +361,7 @@ const AmbientalPage = ({ isOpen, onClose, bikeData }) => {
                                 <LineChart data={processedData.dailyData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis dataKey="date" tickFormatter={formatDate} tick={{ fontSize: 12 }} />
-                                    <YAxis domain={calculateYDomain(processedData.dailyData, "temperatura")} />
+                                    <YAxis domain={calculateYDomain(processedData.dailyData, "calidad_ambiental")} />
                                     <Tooltip
                                         formatter={(value) => [`${value}%`, "calidad_ambiental"]}
                                         labelFormatter={(label) => formatDate(label)}
