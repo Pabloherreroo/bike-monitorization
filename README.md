@@ -8,7 +8,7 @@ Este sistema permite la administración y monitorización en tiempo real de bici
 - **Carpeta "extra"**: Contiene los datos de prueba recogidos por Bilbao, además del script utilizado para convertirlos a SQL modificando algunos de sus valores por franjas temporales.
 
 ## 🎥 Demo del proyecto
-[Enlace al video demo en YouTube](https://youtu.be/I31GYJfvUPA)
+[Enlace al video demo en YouTube](https://youtu.be/35fb_rVxDZE)
 
 ## Deployment con Render
 Se puede acceder a la interfaz de la página web en el siguiente dominio:
