@@ -66,7 +66,7 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
         const barriosMap = {};
         
         datosFiltrados.forEach(dato => {
-            if (!dato.barrio) return; // Ignoramos datos sin barrio
+            if (!dato.barrio || dato.calidad_ambiental === undefined || dato.calidad_ambiental === null || dato.ruido === undefined && dato.ruido === null) return;
             if (!barriosMap[dato.barrio]) {
                 barriosMap[dato.barrio] = {
                     totalCalidadAmbiental: 0,
@@ -74,8 +74,8 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
                     count: 0
                 };
             }
-            barriosMap[dato.barrio].totalCalidadAmbiental += dato.calidad_ambiental;
-            barriosMap[dato.barrio].totalRuido += dato.ruido;
+            barriosMap[dato.barrio].totalCalidadAmbiental += Number(dato.calidad_ambiental);
+            barriosMap[dato.barrio].totalRuido += Number(dato.ruido || 0);
             barriosMap[dato.barrio].count++;
         });
         
@@ -84,15 +84,19 @@ const Dashboard = ({ bikeData, bikes, isSuperAdmin, hiddenBikeIds, toggleHideBik
         
         Object.entries(barriosMap).forEach(([barrio, datos]) => {
             if (datos.count > 0) {
-                barriosAirQuality.push({
-                    name: barrio,
-                    value: Math.round(datos.totalCalidadAmbiental / datos.count)
-                });
+                if (datos.totalCalidadAmbiental > 0) {
+                    barriosAirQuality.push({
+                        name: barrio,
+                        value: Math.round(datos.totalCalidadAmbiental / datos.count)
+                    });
+                }
                 
-                barriosNoise.push({
-                    name: barrio,
-                    value: Math.round(datos.totalRuido / datos.count)
-                });
+                if (datos.totalRuido > 0) {
+                    barriosNoise.push({
+                        name: barrio,
+                        value: Math.round(datos.totalRuido / datos.count)
+                    });
+                }
             }
         });
         
